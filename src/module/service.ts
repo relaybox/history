@@ -27,7 +27,7 @@ export async function setHistoryTtl(
   key: any,
   historyTtlHours: number
 ): Promise<void> {
-  logger.info(`Setting history ttl`, { key, historyTtlHours });
+  logger.info(`Setting history ttl (${historyTtlHours}h)`, { key, historyTtlHours });
 
   try {
     await historyRepository.setHistoryTtl(redisClient, key, historyTtlHours);

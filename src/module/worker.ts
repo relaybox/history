@@ -6,9 +6,6 @@ import { getPgPool } from '../lib/pg';
 
 const logger = getLogger('session');
 
-console.log('REDIS HOST', process.env.REDIS_HOST);
-console.log('REDIS PORT', process.env.REDIS_PORT);
-
 const QUEUE_NAME = 'history';
 const REDIS_HOST = process.env.REDIS_HOST!;
 const REDIS_PORT = Number(process.env.REDIS_PORT!);
@@ -40,5 +37,13 @@ export async function startWorker() {
 
   worker.on('failed', (job: Job<any, void, string> | undefined, err: Error, prev: string) => {
     logger.error(`Failed to process job ${job?.id}`, { err });
+  });
+
+  worker.on('ready', () => {
+    logger.info(`History worker ready`);
+  });
+
+  worker.on('active', () => {
+    logger.info(`History worker active`);
   });
 }

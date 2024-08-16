@@ -4,7 +4,7 @@ import { JobName, router } from './router';
 import { createClient } from '../lib/redis';
 import { getPgPool } from '../lib/pg';
 
-const logger = getLogger('session');
+const logger = getLogger('history');
 
 const QUEUE_NAME = 'history';
 const REDIS_HOST = process.env.REDIS_HOST!;

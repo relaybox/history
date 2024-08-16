@@ -43,10 +43,6 @@
           "value": "${DB_IDLE_TIMEOUT_MS}"
         },
         {
-          "name": "DB_TLS_DISABLED",
-          "value": "${DB_TLS_DISABLED}"
-        },
-        {
           "name": "DB_MAX_CONNECTIONS",
           "value": "${DB_MAX_CONNECTIONS}"
         },

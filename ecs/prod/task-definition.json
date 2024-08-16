@@ -55,14 +55,6 @@
           "value": "${DB_USERNAME}"
         },
         {
-          "name": "RABBIT_MQ_CONNECTION_STRING",
-          "value": "${RABBIT_MQ_CONNECTION_STRING}"
-        },
-        {
-          "name": "RABBIT_MQ_QUEUE_COUNT",
-          "value": "${RABBIT_MQ_QUEUE_COUNT}"
-        },
-        {
           "name": "REDIS_HOST",
           "value": "${REDIS_HOST}"
         },

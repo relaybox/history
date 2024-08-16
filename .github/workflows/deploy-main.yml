@@ -55,6 +55,8 @@ jobs:
           DB_PORT: ${{ vars.DB_PORT }}
           DB_IDLE_TIMEOUT_MS: ${{ vars.DB_IDLE_TIMEOUT_MS }}
           DB_MAX_CONNECTIONS: ${{ vars.DB_MAX_CONNECTIONS }}
+          DB_PROXY_ENABLED: ${{ vars.DB_PROXY_ENABLED }}
+          DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
           DB_USERNAME: ${{ vars.DB_USERNAME }}
           REDIS_HOST: ${{ vars.REDIS_HOST }}
           REDIS_PORT: ${{ vars.REDIS_PORT }}

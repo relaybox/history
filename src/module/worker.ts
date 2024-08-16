@@ -6,6 +6,9 @@ import { getPgPool } from '../lib/pg';
 
 const logger = getLogger('session');
 
+console.log('REDIS HOST', process.env.REDIS_HOST);
+console.log('REDIS PORT', process.env.REDIS_PORT);
+
 const QUEUE_NAME = 'history';
 const REDIS_HOST = process.env.REDIS_HOST!;
 const REDIS_PORT = Number(process.env.REDIS_PORT!);

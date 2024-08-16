@@ -78,6 +78,6 @@ jobs:
           aws ecs update-service \
             --region ${{ vars.AWS_REGION }} \
             --cluster ${{env.APP_NAME}}-${{ env.CLUSTER_NAME }}-${{vars.STAGE}}-ecs-cluster-ECSCluster-g8M6HWc0Cdph \
-            --service ${{env.APP_NAME}}-${{ env.SERVICE_NAME }}-${{vars.STAGE}}-ecs-service-ECSService-uN7Qter6Bul6 \
+            --service ${{env.APP_NAME}}-${{ env.SERVICE_NAME }}-${{vars.STAGE}}-ecs-service-ECSService-QUyk6UvlrbdB \
             --task-definition ${{ steps.register-task.outputs.task-definition-arn }} \
             --force-new-deployment

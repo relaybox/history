@@ -2,8 +2,10 @@ name: Deploy production
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+    # tags:
+    #   - '*'
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}

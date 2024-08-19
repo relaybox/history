@@ -1,39 +1,79 @@
 import {
-  createClient as createRedisClient,
+  createClient,
   RedisClientType,
   RedisModules,
   RedisFunctions,
-  RedisScripts
+  RedisScripts,
+  RedisClientOptions
 } from 'redis';
 import { getLogger } from '../util/logger.util';
+import fs from 'fs';
+import path from 'path';
 
 const logger = getLogger('redis-client');
 
-interface RedisOptions {
-  host: string;
-  port: number;
-}
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PORT = process.env.REDIS_PORT;
+const REDIS_AUTH = process.env.REDIS_AUTH;
+const REDIS_TLS_DISABLED = process.env.REDIS_TLS_DISABLED === 'true';
+const REDIS_AUTH_TOKEN = getRedisAuthToken();
 
 export type RedisClient = RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
 
+// Node redis client options
+export const tlsConnectionOptions = {
+  tls: true,
+  rejectUnauthorized: true,
+  cert: fs.readFileSync(path.join(__dirname, '../certs/AmazonRootCA1.pem'))
+};
+
+export const socketOptions = {
+  host: REDIS_HOST!,
+  port: Number(REDIS_PORT)!,
+  ...(!REDIS_TLS_DISABLED && tlsConnectionOptions)
+};
+
+export const connectionOptions: RedisClientOptions = {
+  ...(!REDIS_TLS_DISABLED && { password: REDIS_AUTH_TOKEN }),
+  socket: {
+    ...socketOptions,
+    reconnectStrategy
+  }
+};
+
+// IO redis client options (BullMQ)
+const tlsConnectionOptionsIo = {
+  password: REDIS_AUTH_TOKEN,
+  tls: tlsConnectionOptions
+};
+
+export const connectionOptionsIo = {
+  host: REDIS_HOST!,
+  port: Number(REDIS_PORT)!,
+  ...(!REDIS_TLS_DISABLED && tlsConnectionOptionsIo)
+};
+
 let redisClient: RedisClient;
+
+function getRedisAuthToken(): string {
+  if (!REDIS_AUTH) {
+    logger.warn('Redis auth token for TLS connection not defined');
+    return '';
+  }
+
+  return JSON.parse(REDIS_AUTH).authToken;
+}
 
 function reconnectStrategy(retries: number) {
   return Math.min(retries * 50, 1000);
 }
 
-export function createClient({ host, port }: RedisOptions): RedisClient {
+export function getRedisClient(): RedisClient {
   if (redisClient) {
     return redisClient;
   }
 
-  redisClient = createRedisClient({
-    socket: {
-      host,
-      port,
-      reconnectStrategy
-    }
-  });
+  redisClient = createClient(connectionOptions);
 
   redisClient.on('connect', () => {
     logger.info('Redis connected');

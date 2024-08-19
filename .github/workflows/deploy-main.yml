@@ -60,6 +60,7 @@ jobs:
           DB_USERNAME: ${{ vars.DB_USERNAME }}
           REDIS_HOST: ${{ vars.REDIS_HOST }}
           REDIS_PORT: ${{ vars.REDIS_PORT }}
+          REDIS_AUTH_ARN: ${{ vars.REDIS_AUTH_ARN }}
           DB_PASSWORD_ARN: ${{ vars.DB_PASSWORD_ARN }}
           RDS_ROOT_CERTIFICATE_ARN: ${{ vars.RDS_ROOT_CERTIFICATE_ARN }}
         run: |

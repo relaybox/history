@@ -53,7 +53,7 @@ export const connectionOptionsIo = {
   ...(!REDIS_TLS_DISABLED && tlsConnectionOptionsIo)
 };
 
-let redisClient: RedisClient;
+let redisClient: RedisClient | null;
 
 function getRedisAuthToken(): string {
   if (!REDIS_AUTH) {
@@ -94,11 +94,14 @@ export function getRedisClient(): RedisClient {
   return redisClient;
 }
 
-process.on('SIGINT', async () => {
+export async function cleanupRedisClient(): Promise<void> {
   if (redisClient) {
-    await redisClient.quit();
-    logger.info('Redis client disconnected through app termination');
+    try {
+      await redisClient.quit();
+    } catch (err) {
+      logger.error('Error disconnecting Redis client', { err });
+    } finally {
+      redisClient = null;
+    }
   }
-
-  process.exit(0);
-});
+}

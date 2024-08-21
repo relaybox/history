@@ -52,11 +52,11 @@ export async function startWorker() {
   });
 
   worker.on('ready', () => {
-    logger.info(`Session worker ready`);
+    logger.info(`History worker ready`);
   });
 
   worker.on('active', () => {
-    logger.info(`Session worker active`);
+    logger.info(`History worker active`);
   });
 }
 

@@ -57,7 +57,7 @@ jobs:
           DB_MAX_CONNECTIONS: ${{ vars.DB_MAX_CONNECTIONS }}
           DB_PROXY_ENABLED: ${{ vars.DB_PROXY_ENABLED }}
           DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
-          DB_USERNAME: ${{ vars.DB_USERNAME }}
+          DB_USER: ${{ vars.DB_USER }}
           REDIS_HOST: ${{ vars.REDIS_HOST }}
           REDIS_PORT: ${{ vars.REDIS_PORT }}
           REDIS_AUTH_ARN: ${{ vars.REDIS_AUTH_ARN }}

@@ -1,9 +1,8 @@
 name: Deploy production
 
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types: [published]
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
@@ -12,75 +11,101 @@ env:
   SERVICE_NAME: history
 
 jobs:
-  deploy:
-    name: deploy:prod
+  build-application:
+    name: Build application
+    uses: ./.github/workflows/build-application.yml
+
+  build-push-ecr:
+    name: Push ECR
+    uses: ./.github/workflows/build-push-ecr.yml
+    needs: build-application
+    with:
+      environment: production
+      service-name: history
+    secrets: inherit
+
+  deploy-ecs:
+    name: Deploy ECS
+    uses: ./.github/workflows/deploy-ecs.yml
+    needs: build-push-ecr
+    with:
+      environment: production
+      ecr-image: ${{ needs.build-push-ecr.outputs.ecr-image }}
+      cluster-name: core-services
+      service-name: history
+      cluster-suffix: 9pkS9BJE3t40
+      service-suffix: OrrQbJUWgoef
+    secrets: inherit
+
+  publish-multi-platform-image:
+    name: Publish multi-platform image
     runs-on: ubuntu-latest
+    needs:
+      - build-application
+      - deploy-ecs
     environment:
       name: production
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v3
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-          audience: sts.amazonaws.com
-          role-to-assume: ${{ vars.AWS_CI_DEPLOYER_ROLE_ARN }}
+          name: build-artifacts
+          path: ./build
 
-      - name: Log in to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Extract Version from Tag
+        id: extract-version
+        uses: ./.github/actions/extract-version
+
+      - name: Set Up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:buildx-stable-1
+
+      - name: Build and push multi-platform image
         id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          npm ci
-          npm run build
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/amd64,linux/arm64/v8 \
+            -t relaybox/${{ env.SERVICE_NAME }}:${{ steps.extract-version.outputs.version }} \
+            -t relaybox/${{ env.SERVICE_NAME }}:latest \
+            --push .
 
-      - name: Render task definition with environment variables and secrets
-        env:
-          IMAGE: ${{ steps.build-image.outputs.image }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          DB_HOST: ${{ vars.DB_HOST }}
-          DB_NAME: ${{ vars.DB_NAME }}
-          DB_PORT: ${{ vars.DB_PORT }}
-          DB_IDLE_TIMEOUT_MS: ${{ vars.DB_IDLE_TIMEOUT_MS }}
-          DB_MAX_CONNECTIONS: ${{ vars.DB_MAX_CONNECTIONS }}
-          DB_PROXY_ENABLED: ${{ vars.DB_PROXY_ENABLED }}
-          DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
-          DB_USER: ${{ vars.DB_USER }}
-          REDIS_HOST: ${{ vars.REDIS_HOST }}
-          REDIS_PORT: ${{ vars.REDIS_PORT }}
-          REDIS_AUTH_ARN: ${{ vars.REDIS_AUTH_ARN }}
-          DB_PASSWORD_ARN: ${{ vars.DB_PASSWORD_ARN }}
-          RDS_ROOT_CERTIFICATE_ARN: ${{ vars.RDS_ROOT_CERTIFICATE_ARN }}
-        run: |
-          envsubst < ecs/${{vars.STAGE}}/task-definition.json > ecs-task-definition.json
+  update-package-version:
+    name: Update package version
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-ecs
+    permissions:
+      contents: write
 
-      - name: Register ECS task definition
-        id: register-task
-        run: |
-          TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://ecs-task-definition.json \
-            --region ${{ vars.AWS_REGION }} \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          echo "task-definition-arn=$TASK_DEFINITION_ARN" >> $GITHUB_OUTPUT
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
-      - name: Deploy Amazon ECS service
+      - name: Extract Version from Tag
+        id: extract-version
+        uses: ./.github/actions/extract-version
+
+      - name: Update Package Version
         run: |
-          aws ecs update-service \
-            --region ${{ vars.AWS_REGION }} \
-            --cluster ${{env.APP_NAME}}-${{ env.CLUSTER_NAME }}-${{vars.STAGE}}-ecs-cluster-ECSCluster-9pkS9BJE3t40 \
-            --service ${{env.APP_NAME}}-${{ env.SERVICE_NAME }}-${{vars.STAGE}}-ecs-service-ECSService-OrrQbJUWgoef \
-            --task-definition ${{ steps.register-task.outputs.task-definition-arn }} \
-            --force-new-deployment
+          npm version ${{ steps.extract-version.outputs.version }} --no-git-tag-version
+
+      - name: Commit Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: update package version [skip ci]'
+          commit_author: GitHub Actions <actions@github.com>
+          branch: main

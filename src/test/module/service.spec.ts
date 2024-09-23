@@ -29,6 +29,7 @@ describe('service', () => {
   describe('getHistoryTtlhours', () => {
     it('should return history ttl for nspRoomId based on application settings', async () => {
       const historyTtlHoursForApplication = 24;
+
       mockDb.getHistoryTtlhours.mockResolvedValue({
         rows: [{ historyTtlHours: historyTtlHoursForApplication }]
       });

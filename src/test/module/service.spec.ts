@@ -1,4 +1,3 @@
-import { getMockReducedSession } from '@/test/__mocks__/internal/session.mock';
 import { describe, vi, it, afterEach, expect } from 'vitest';
 import { getLogger } from '@/util/logger.util';
 import { RedisClient } from '@/lib/redis';

@@ -66,6 +66,10 @@ jobs:
         id: extract-version
         uses: ./.github/actions/extract-version
 
+      - name: Update Package Version
+        run: |
+          npm version ${{ steps.extract-version.outputs.version }} --no-git-tag-version
+
       - name: Set Up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:

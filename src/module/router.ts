@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
-import { RedisClient } from '../lib/redis';
-import { handler as historyTtlHandler } from '../handlers/history-ttl';
+import { RedisClient } from '@/lib/redis';
+import { handler as historyTtlHandler } from '@/handlers/history-ttl';
 
 export enum JobName {
   HISTORY_TTL = 'history:ttl'

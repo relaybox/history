@@ -6,7 +6,7 @@ import {
   RedisScripts,
   RedisClientOptions
 } from 'redis';
-import { getLogger } from '../util/logger.util';
+import { getLogger } from '@/util/logger.util';
 import fs from 'fs';
 import path from 'path';
 
@@ -20,11 +20,19 @@ const REDIS_AUTH_TOKEN = getRedisAuthToken();
 
 export type RedisClient = RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
 
+function getCertificate(): Buffer | undefined {
+  try {
+    return fs.readFileSync(path.join(__dirname, 'certs/AmazonRootCA1.pem'));
+  } catch (err) {
+    logger.error(`Failed to read certificate file: ${err}`);
+  }
+}
+
 // Node redis client options
 export const tlsConnectionOptions = {
   tls: true,
   rejectUnauthorized: true,
-  cert: fs.readFileSync(path.join(__dirname, '../certs/AmazonRootCA1.pem'))
+  cert: getCertificate()
 };
 
 export const socketOptions = {

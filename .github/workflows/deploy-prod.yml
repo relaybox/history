@@ -11,8 +11,16 @@ env:
   SERVICE_NAME: history
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
+
   build-application:
     name: Build application
+    needs: test
     uses: ./.github/workflows/build-application.yml
 
   build-push-ecr:

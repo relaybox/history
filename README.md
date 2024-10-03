@@ -1,4 +1,4 @@
-# History - History Management Service by RelayBox
+# History - RelayBox History Management Service
 
 The history service is one of four core services that keep the core database up to date with the latest data broadcast by the UWS Realtime Service.
 

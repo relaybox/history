@@ -53,7 +53,7 @@ By partioning the keys this way, it's possible to apply expiry based on hours at
 
 The following jobs are handled by the service:
 
-## history:ttl
+- `history:ttl`
 
 This job is responsible for looking up the desired history `ttl` for a given application based on the job data being processed. Once located, the process will apply the given `ttl` value to the corresponding key (already created by UWS service).
 

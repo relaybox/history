@@ -23,10 +23,6 @@
           "value": "${AWS_REGION}"
         },
         {
-          "name": "CRON_SCHEDULE_MINS",
-          "value": "${CRON_SCHEDULE_MINS}"
-        },
-        {
           "name": "DB_HOST",
           "value": "${DB_HOST}"
         },

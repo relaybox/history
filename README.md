@@ -1,6 +1,6 @@
 # History - RelayBox History Management Service
 
-The history service is one of four core services that keep the core database up to date with the latest data broadcast by the UWS Realtime Service.
+The history service is one of four core services that keep the core database up to date with the latest data broadcast by the Core Realtime Service.
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ npm run test
 
 The "history" service is currently an extremely lightweight service with a single task. When a message is saved to the a room's historical messages, the service will lookup the history `ttl` value from the database and apply it to the key that has been created.
 
-![RelayBox system diagram, highlight History](/assets/system/relaybox-system-history.png)
+<!-- ![RelayBox system diagram, highlight History](/assets/system/relaybox-system-history.png) -->
 
 Room history is stored in Redis as date partitioned sorted sets. Each hour has a unique key consiting of the namespaced room id and the hourly timestamp in the following format;
 
@@ -55,7 +55,7 @@ The following jobs are handled by the service:
 
 - `history:ttl`
 
-This job is responsible for looking up the desired history `ttl` for a given application based on the job data being processed. Once located, the process will apply the given `ttl` value to the corresponding key (already created by uWS service).
+This job is responsible for looking up the desired history `ttl` for a given application based on the job data being processed. Once located, the process will apply the given `ttl` value to the corresponding key (already created by Core service).
 
 # Moving Forward
 

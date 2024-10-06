@@ -39,7 +39,7 @@ npm run test
 
 The "history" service is currently an extremely lightweight service with a single task. When a message is saved to the a room's historical messages, the service will lookup the history `ttl` value from the database and apply it to the key that has been created.
 
-<!-- ![RelayBox system diagram, highlight History](/assets/system/relaybox-system-history.png) -->
+![RelayBox system diagram, highlight History](/assets/system/relaybox-system-history.png)
 
 Room history is stored in Redis as date partitioned sorted sets. Each hour has a unique key consiting of the namespaced room id and the hourly timestamp in the following format;
 

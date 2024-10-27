@@ -1,46 +1,64 @@
 import { getLogger } from '@/util/logger';
-import { Connection, Consumer, ConsumerProps, Envelope } from 'rabbitmq-client';
+import { AsyncMessage, Connection, Consumer, ConsumerProps, Envelope } from 'rabbitmq-client';
 
 const logger = getLogger('consumer');
 
-const AMQP_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING;
-const AMQP_EXCHANGE_NAME = 'ds.persistence.durable';
-const AMQP_QUEUE_TYPE = 'direct';
-const AMQP_QUEUE_NAME = `persist`;
-const AMQP_ROUTING_KEY = `message.persist`;
+const RABBIT_MQ_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING;
+const EXCHANGE_NAME = 'ds.persistence.durable';
+const QUEUE_TYPE = 'direct';
+const QUEUE_NAME = `persist`;
+const ROUTING_KEY = `message.persist`;
+const BATCH_SIZE = 5;
 
-const connection = new Connection(AMQP_CONNECTION_STRING);
+const connection = new Connection(RABBIT_MQ_CONNECTION_STRING);
 
 let consumer: Consumer | null = null;
 
 export function startConsumer(): Consumer {
   if (consumer) {
-    logger.error(`Consumer already initialized`);
+    logger.error(`Consumer already started`);
     return consumer;
   }
 
   logger.info('Creating amqp consumer');
 
+  const batch: any[] = [];
+  let batchTimeout: NodeJS.Timeout | null = null;
+
   const consumerOptions: ConsumerProps = {
-    queue: AMQP_QUEUE_NAME,
+    queue: QUEUE_NAME,
+    concurrency: 10,
+    noAck: false,
     queueOptions: {
       durable: true
     },
+    qos: {
+      prefetchCount: 20
+    },
     exchanges: [
       {
-        exchange: AMQP_EXCHANGE_NAME,
-        type: AMQP_QUEUE_TYPE
+        exchange: EXCHANGE_NAME,
+        type: QUEUE_TYPE,
+        durable: true
       }
     ],
     queueBindings: [
       {
-        exchange: AMQP_EXCHANGE_NAME,
-        routingKey: AMQP_ROUTING_KEY
+        exchange: EXCHANGE_NAME,
+        routingKey: ROUTING_KEY
       }
     ]
   };
 
-  consumer = connection.createConsumer(consumerOptions, handleMessage);
+  consumer = connection.createConsumer(consumerOptions, (message: AsyncMessage) => {
+    batch.push(message.body);
+
+    if (batch.length === 1) {
+      batchTimeout = setTimeout(() => processBatch(batch), 10000);
+    } else if (batch.length >= BATCH_SIZE) {
+      processBatch(batch);
+    }
+  });
 
   consumer.on('error', (err) => {
     logger.error('Error handling message', { err });
@@ -49,8 +67,9 @@ export function startConsumer(): Consumer {
   return consumer;
 }
 
-export async function handleMessage(message: Envelope): Promise<void> {
-  console.log(message);
+export function processBatch(batch: any[]) {
+  console.log(JSON.stringify(batch, null, 2));
+  batch.length = 0;
 }
 
 export async function cleanupConsumer() {

@@ -1,5 +1,5 @@
 import { describe, vi, it, afterEach, expect } from 'vitest';
-import { getLogger } from '@/util/logger.util';
+import { getLogger } from '@/util/logger';
 import { RedisClient } from '@/lib/redis';
 import { PoolClient } from 'pg';
 import { getHistoryTtlhours, setHistoryTtl } from '@/module/service';

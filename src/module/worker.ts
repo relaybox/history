@@ -1,5 +1,5 @@
 import { Job, Worker } from 'bullmq';
-import { getLogger } from '@/util/logger.util';
+import { getLogger } from '@/util/logger';
 import { JobName, router } from './router';
 import { connectionOptionsIo, getRedisClient } from '@/lib/redis';
 import { getPgPool } from '@/lib/pg';

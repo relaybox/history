@@ -1,13 +1,15 @@
 import 'dotenv/config';
 
 import { startWorker, stopWorker } from '@/module/worker';
-import { getLogger } from '@/util/logger.util';
+import { getLogger } from '@/util/logger';
 import { cleanupRedisClient } from '@/lib/redis';
 import { cleanupPgPool } from '@/lib/pg';
+import { cleanupConsumer, startConsumer } from '@/module/consumer';
 
 const logger = getLogger('history-service');
 
 startWorker();
+startConsumer();
 
 async function shutdown(signal: string): Promise<void> {
   logger.info(`${signal} received, shutting down session worker`);
@@ -18,7 +20,7 @@ async function shutdown(signal: string): Promise<void> {
   }, 10000);
 
   try {
-    await Promise.all([stopWorker(), cleanupRedisClient(), cleanupPgPool()]);
+    await Promise.all([stopWorker(), cleanupRedisClient(), cleanupPgPool(), cleanupConsumer()]);
 
     clearTimeout(shutdownTimeout);
 

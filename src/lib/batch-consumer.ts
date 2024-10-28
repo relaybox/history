@@ -2,6 +2,10 @@ import { getLogger } from '@/util/logger';
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
 
+const DEFAULT_PREFETCH_COUNT = 20;
+const DEFAUL_BATCH_SIZE = 10;
+const DEFAULT_BATCH_TIMEOUT_MS = 10000;
+
 export interface ExchangeConfig {
   name: string;
   type: string;
@@ -23,8 +27,8 @@ export type BatchHandler = (messages: any[]) => Promise<void>;
 export default class BatchConsumer {
   private batch: ConsumeMessage[] = [];
   private batchTimeout: NodeJS.Timeout | null = null;
-  private connection!: Connection;
-  private channel!: Channel;
+  private connection: Connection;
+  private channel: Channel;
   private options: BatchConsumerOptions;
   private logger: Logger;
   private batchhandler: BatchHandler;
@@ -33,9 +37,9 @@ export default class BatchConsumer {
 
   constructor(options: BatchConsumerOptions, batchHandler: BatchHandler) {
     this.options = {
-      prefetch: 10,
-      batchSize: 10,
-      batchTimeoutMs: 10000,
+      prefetch: DEFAULT_PREFETCH_COUNT,
+      batchSize: DEFAUL_BATCH_SIZE,
+      batchTimeoutMs: DEFAULT_BATCH_TIMEOUT_MS,
       ...options
     };
 
@@ -64,12 +68,16 @@ export default class BatchConsumer {
 
       if (this.options.exchange) {
         const exchange = this.options.exchange;
+
         await this.channel.assertExchange(exchange.name, exchange.type, {
           durable: exchange.durable ?? true
         });
 
         if (this.options.routingKey) {
-          await this.channel.assertQueue(this.options.queue, { durable: true });
+          await this.channel.assertQueue(this.options.queue, {
+            durable: true
+          });
+
           await this.channel.bindQueue(this.options.queue, exchange.name, this.options.routingKey);
         } else {
           throw new Error('Routing key is required when an exchange is specified.');
@@ -80,22 +88,10 @@ export default class BatchConsumer {
 
       await this.channel.prefetch(this.options.prefetch!);
 
-      console.log('Connected to RabbitMQ and channel is set up.');
-
       await this.consume();
     } catch (err) {
-      console.error('Failed to connect to RabbitMQ:', { err });
-      throw err; // Re-throw after logging
-    }
-  }
-
-  public async close(): Promise<void> {
-    try {
-      await this.channel.close();
-      await this.connection.close();
-      this.logger.info('RabbitMQ connection closed gracefully.');
-    } catch (err) {
-      this.logger.error('Error closing RabbitMQ connection:', { err });
+      this.logger.error('Failed to connect', { err });
+      throw err;
     }
   }
 
@@ -106,14 +102,14 @@ export default class BatchConsumer {
 
     this.consuming = true;
 
-    await this.channel.consume(this.options.queue, this.onMessage.bind(this), {
+    await this.channel.consume(this.options.queue, this.handleMessage.bind(this), {
       noAck: false
     });
 
     this.logger.debug(`Started consuming messages from queue: ${this.options.queue}`);
   }
 
-  private onMessage(msg: ConsumeMessage | null): void {
+  private handleMessage(msg: ConsumeMessage | null): void {
     if (msg) {
       this.batch.push(msg);
 
@@ -174,8 +170,19 @@ export default class BatchConsumer {
     try {
       return JSON.parse(content).data;
     } catch (err) {
-      console.warn('Failed to parse message content as JSON:', content);
+      this.logger.warn('Failed to parse message content as JSON:', content);
       return content;
+    }
+  }
+
+  public async close(): Promise<void> {
+    try {
+      await this.channel.close();
+      await this.connection.close();
+
+      this.logger.info('batch consumer closed');
+    } catch (err) {
+      this.logger.error('Error closing batch consumer:', { err });
     }
   }
 }

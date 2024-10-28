@@ -38,12 +38,6 @@ export async function setHistoryTtl(
   }
 }
 
-export function parseMessage(message: any) {
-  // const content = message.content.toString();
-  const parsedContent = JSON.parse(message);
-  return parsedContent.data;
-}
-
 export function parseMessageHistoryDbEntries(
   logger: Logger,
   messages: any[]

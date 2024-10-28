@@ -10,8 +10,6 @@ export async function handler(pgPool: Pool, messages: ConsumeMessage[]): Promise
 
   const pgClient = await pgPool.connect();
 
-  console.log(JSON.stringify(messages, null, 2));
-
   try {
     const messageDbEntries = parseMessageHistoryDbEntries(logger, messages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);

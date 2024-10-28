@@ -12,7 +12,9 @@ const EXCHANGE_NAME = 'ds.persistence.durable';
 const QUEUE_TYPE = 'direct';
 const QUEUE_NAME = `persist`;
 const ROUTING_KEY = `message.persist`;
-const PRFETCH_COUNT = 20;
+const PREFETCH_COUNT = 20;
+const BATCH_SIZE = 10;
+const BATCH_TIMEOUT_MS = 10000;
 
 let batchConsumer: BatchConsumer | null = null;
 
@@ -29,18 +31,14 @@ export async function startConsumer(): Promise<void> {
     },
     queue: QUEUE_NAME,
     routingKey: ROUTING_KEY,
-    prefetch: PRFETCH_COUNT,
-    batchSize: 2,
-    batchTimeoutMs: 10000
+    prefetch: PREFETCH_COUNT,
+    batchSize: BATCH_SIZE,
+    batchTimeoutMs: BATCH_TIMEOUT_MS
   };
 
   batchConsumer = new BatchConsumer(batchConsumerOptions, (messages: ConsumeMessage[]) =>
     historyBatchProcesser(pgPool, messages)
   );
-}
-
-async function handleMessageBatch(messages: any[]): Promise<void> {
-  console.log(JSON.stringify(messages, null, 2));
 }
 
 export async function stopConsumer(): Promise<void> {

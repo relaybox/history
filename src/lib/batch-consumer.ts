@@ -36,6 +36,8 @@ export default class BatchConsumer {
   public ready: Promise<void>;
 
   constructor(options: BatchConsumerOptions, batchHandler: BatchHandler) {
+    this.logger = getLogger(`batch-consumer`);
+
     this.options = {
       prefetch: DEFAULT_PREFETCH_COUNT,
       batchSize: DEFAUL_BATCH_SIZE,
@@ -45,10 +47,8 @@ export default class BatchConsumer {
 
     this.batchhandler = batchHandler;
 
-    this.logger = getLogger(`batch-consumer`);
-
     this.ready = this.initialize().catch((err) => {
-      this.logger.error('Error initializing batch consumer:', { err });
+      this.logger.error('Error initializing batch consumer', { err });
     });
   }
 
@@ -57,7 +57,7 @@ export default class BatchConsumer {
       this.connection = await amqp.connect(this.options.amqpConnectionString);
 
       this.connection.on('error', (err) => {
-        this.logger.error('Connection error:', err);
+        this.logger.error('Connection error', { err });
       });
 
       this.connection.on('close', () => {
@@ -74,13 +74,10 @@ export default class BatchConsumer {
         });
 
         if (this.options.routingKey) {
-          await this.channel.assertQueue(this.options.queue, {
-            durable: true
-          });
-
+          await this.channel.assertQueue(this.options.queue, { durable: true });
           await this.channel.bindQueue(this.options.queue, exchange.name, this.options.routingKey);
         } else {
-          throw new Error('Routing key is required when an exchange is specified.');
+          throw new Error('Routing key is required when an exchange is specified');
         }
       } else {
         await this.channel.assertQueue(this.options.queue, { durable: true });
@@ -106,12 +103,12 @@ export default class BatchConsumer {
       noAck: false
     });
 
-    this.logger.debug(`Started consuming messages from queue: ${this.options.queue}`);
+    this.logger.info(`Started consuming messages from queue: ${this.options.queue}`);
   }
 
-  private handleMessage(msg: ConsumeMessage | null): void {
-    if (msg) {
-      this.batch.push(msg);
+  private handleMessage(message: ConsumeMessage | null): void {
+    if (message) {
+      this.batch.push(message);
 
       if (this.batch.length === 1) {
         this.startBatchTimeout();
@@ -143,34 +140,34 @@ export default class BatchConsumer {
       this.batchTimeout = null;
     }
 
-    const messages = this.batch.map((msg) => this.parseMessage(msg));
     const originalMessages = [...this.batch];
+    const messages = this.batch.map((message) => this.parseMessage(message));
     this.batch = [];
 
     try {
       await this.batchhandler(messages);
 
-      originalMessages.forEach((msg) => {
-        this.channel.ack(msg);
+      originalMessages.forEach((message) => {
+        this.channel.ack(message);
       });
 
-      this.logger.debug(`Processed and acknowledged batch of ${messages.length} messages.`);
+      this.logger.info(`Processed and acknowledged ${messages.length} message(s)`);
     } catch (err) {
-      this.logger.error('Error processing batch:', { err });
+      this.logger.error('Error processing batch', { err });
 
-      originalMessages.forEach((msg) => {
-        this.channel.nack(msg, false, false);
+      originalMessages.forEach((message) => {
+        this.channel.nack(message, false, false);
       });
     }
   }
 
-  private parseMessage(msg: ConsumeMessage): any {
-    const content = msg.content.toString();
+  private parseMessage(message: ConsumeMessage): any {
+    const content = message.content.toString();
 
     try {
       return JSON.parse(content).data;
     } catch (err) {
-      this.logger.warn('Failed to parse message content as JSON:', content);
+      this.logger.warn('Failed to parse message content as JSON', content);
       return content;
     }
   }
@@ -182,7 +179,7 @@ export default class BatchConsumer {
 
       this.logger.info('batch consumer closed');
     } catch (err) {
-      this.logger.error('Error closing batch consumer:', { err });
+      this.logger.error('Error closing batch consumer', { err });
     }
   }
 }

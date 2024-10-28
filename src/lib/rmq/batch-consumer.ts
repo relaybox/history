@@ -1,8 +1,8 @@
 import { getLogger } from '@/util/logger';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
-import { eventBus } from './event-bus';
-import { AmqpEvents } from './amqp';
+import { eventBus } from '../event-bus';
+import { AmqpEvents } from './rmq';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;

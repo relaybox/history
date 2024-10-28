@@ -1,9 +1,9 @@
-import BatchConsumer, { BatchConsumerOptions } from '@/lib/batch-consumer';
+import BatchConsumer, { BatchConsumerOptions } from '@/lib/rmq/batch-consumer';
 import { getLogger } from '@/util/logger';
 import { handler as historyBatchProcesser } from '@/handlers/history-batch-processer';
 import { getPgPool } from '@/lib/pg';
 import { ConsumeMessage } from 'amqplib';
-import Amqp from '@/lib/amqp';
+import Rmq from '@/lib/rmq/rmq';
 
 const logger = getLogger('consumer');
 const pgPool = getPgPool();
@@ -17,16 +17,14 @@ const PREFETCH_COUNT = 20;
 const BATCH_SIZE = 10;
 const BATCH_TIMEOUT_MS = 3000;
 
-let connection: Amqp | null = null;
+let connection: Rmq | null = null;
 
 export async function startConsumer(): Promise<void> {
   if (!pgPool) {
     throw new Error('Pg pool not initialized');
   }
 
-  connection = await Amqp.createClient(RABBIT_MQ_CONNECTION_STRING);
-
-  const channel = connection.getChannel();
+  connection = await Rmq.connect(RABBIT_MQ_CONNECTION_STRING);
 
   const batchConsumerOptions: BatchConsumerOptions = {
     amqpConnectionString: RABBIT_MQ_CONNECTION_STRING,
@@ -41,13 +39,10 @@ export async function startConsumer(): Promise<void> {
     batchTimeoutMs: BATCH_TIMEOUT_MS
   };
 
-  const batchConsumer = new BatchConsumer(
-    channel,
+  const batchConsumer = await connection.createBatchConsumer(
     batchConsumerOptions,
     (messages: ConsumeMessage[]) => historyBatchProcesser(pgPool, messages)
   );
-
-  await batchConsumer.start();
 }
 
 export async function stopConsumer(): Promise<void> {

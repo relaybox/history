@@ -1,7 +1,8 @@
 import { getLogger } from '@/util/logger';
 import amqp, { Channel, Connection } from 'amqplib';
 import { Logger } from 'winston';
-import { eventBus } from './event-bus';
+import { eventBus } from '../event-bus';
+import BatchConsumer, { BatchConsumerOptions } from './batch-consumer';
 
 const INITIAL_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 60000;
@@ -14,7 +15,7 @@ export enum AmqpEvents {
   AMQP_CLOSE = 'amqp:close'
 }
 
-export default class Amqp {
+export default class Rmq {
   private connectionString: string;
   private connection: Connection;
   private channel: Channel;
@@ -35,10 +36,10 @@ export default class Amqp {
     });
   }
 
-  public static async createClient(connectionString: string): Promise<Amqp> {
-    const client = new Amqp(connectionString);
-    await client.initialize();
-    return client;
+  public static async connect(connectionString: string): Promise<Rmq> {
+    const connection = new Rmq(connectionString);
+    await connection.initialize();
+    return connection;
   }
 
   public async initialize(): Promise<void> {
@@ -110,6 +111,22 @@ export default class Amqp {
     };
 
     reconnect();
+  }
+
+  public async createBatchConsumer(
+    options: BatchConsumerOptions,
+    batchHandler: BatchHandler
+  ): Promise<BatchConsumer> {
+    try {
+      const batchConsumer = new BatchConsumer(this.channel, options, batchHandler);
+
+      await batchConsumer.start();
+
+      return batchConsumer;
+    } catch (err) {
+      this.logger.error('Error creating batch consumer', { err });
+      throw err;
+    }
   }
 
   public async close(): Promise<void> {

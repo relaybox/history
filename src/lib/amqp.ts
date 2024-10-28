@@ -1,12 +1,18 @@
 import { getLogger } from '@/util/logger';
 import amqp, { Channel, Connection } from 'amqplib';
 import { Logger } from 'winston';
+import { eventBus } from './event-bus';
 
 const INITIAL_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 60000;
 const MAX_RETRY_ATTEMPTS = 10;
 
 export type BatchHandler = (messages: any[]) => Promise<void>;
+
+export enum AmqpEvents {
+  AMQP_READY = 'amqp:ready',
+  AMQP_CLOSE = 'amqp:close'
+}
 
 export default class Amqp {
   private connectionString: string;
@@ -45,6 +51,7 @@ export default class Amqp {
 
       this.connection.on('close', () => {
         this.logger.warn('Connection closed');
+        eventBus.emit(AmqpEvents.AMQP_CLOSE);
 
         if (!this.isReconnecting && !this.shutdownInProgress) {
           this.attemptReconnect();
@@ -53,13 +60,19 @@ export default class Amqp {
 
       this.channel = await this.connection.createChannel();
 
-      this.isReconnecting = false;
-      this.retryCount = 0;
-      this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
+      this.resetReconnectOptions();
+
+      eventBus.emit(AmqpEvents.AMQP_READY);
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;
     }
+  }
+
+  private resetReconnectOptions(): void {
+    this.isReconnecting = false;
+    this.retryCount = 0;
+    this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
   }
 
   public getChannel(): Channel {

@@ -1,10 +1,12 @@
 import { getLogger } from '@/util/logger';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
+import { eventBus } from './event-bus';
+import { AmqpEvents } from './amqp';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
-const DEFAULT_BATCH_TIMEOUT_MS = 10000;
+const DEFAULT_BATCH_TIMEOUT_MS = 3000;
 
 export interface ExchangeConfig {
   name: string;
@@ -46,36 +48,40 @@ export default class BatchConsumer {
 
     this.batchhandler = batchHandler;
     this.channel = channel;
+
+    eventBus.on(AmqpEvents.AMQP_READY, this.start.bind(this));
+    eventBus.on(AmqpEvents.AMQP_CLOSE, this.stop.bind(this));
   }
 
   public async start(): Promise<void> {
     this.logger.debug('Starting batch consumer');
 
     try {
-      if (this.options.exchange) {
-        const exchange = this.options.exchange;
+      const exchange = this.options.exchange;
 
-        await this.channel.assertExchange(exchange.name, exchange.type, {
-          durable: exchange.durable ?? true
-        });
-
-        if (this.options.routingKey) {
-          await this.channel.assertQueue(this.options.queue, { durable: true });
-          await this.channel.bindQueue(this.options.queue, exchange.name, this.options.routingKey);
-        } else {
-          throw new Error('Routing key is required when an exchange is specified');
-        }
-      } else {
-        await this.channel.assertQueue(this.options.queue, { durable: true });
-      }
-
-      await this.channel.prefetch(this.options.prefetch!);
+      this.bindQueue(exchange);
 
       await this.consume();
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;
     }
+  }
+
+  public stop(): void {
+    this.consuming = false;
+  }
+
+  private async bindQueue(exchange: ExchangeConfig): Promise<void> {
+    this.logger.debug('Binding queue');
+
+    await this.channel.assertExchange(exchange.name, exchange.type, {
+      durable: exchange.durable ?? true
+    });
+
+    await this.channel.assertQueue(this.options.queue, { durable: true });
+    await this.channel.bindQueue(this.options.queue, exchange.name, this.options.routingKey);
+    await this.channel.prefetch(this.options.prefetch!);
   }
 
   public async consume(): Promise<void> {
@@ -113,9 +119,7 @@ export default class BatchConsumer {
       clearTimeout(this.batchTimeout);
     }
 
-    this.batchTimeout = setTimeout(() => {
-      this.processBatch();
-    }, this.options.batchTimeoutMs);
+    this.batchTimeout = setTimeout(() => this.processBatch(), this.options.batchTimeoutMs);
   }
 
   private async processBatch(): Promise<void> {
@@ -130,6 +134,7 @@ export default class BatchConsumer {
 
     const originalMessages = [...this.batch];
     const messages = this.batch.map((message) => this.parseMessage(message));
+
     this.batch = [];
 
     try {

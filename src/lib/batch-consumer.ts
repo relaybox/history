@@ -6,6 +6,10 @@ const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
 const DEFAULT_BATCH_TIMEOUT_MS = 10000;
 
+const INITIAL_RETRY_DELAY_MS = 5000;
+const MAX_RETRY_DELAY_MS = 60000;
+const MAX_RETRY_ATTEMPTS = 10;
+
 export interface ExchangeConfig {
   name: string;
   type: string;
@@ -34,6 +38,10 @@ export default class BatchConsumer {
   private batchhandler: BatchHandler;
   private consuming: boolean = false;
   public ready: Promise<void>;
+  private isReconnecting: boolean = false;
+  private retryCount: number = 0;
+  private currentRetryDelay: number = INITIAL_RETRY_DELAY_MS;
+  private shutdownInProgress: boolean = false;
 
   constructor(options: BatchConsumerOptions, batchHandler: BatchHandler) {
     this.logger = getLogger(`batch-consumer`);
@@ -62,6 +70,10 @@ export default class BatchConsumer {
 
       this.connection.on('close', () => {
         this.logger.warn('Connection closed');
+
+        if (!this.isReconnecting && !this.shutdownInProgress) {
+          this.attemptReconnect();
+        }
       });
 
       this.channel = await this.connection.createChannel();
@@ -86,6 +98,10 @@ export default class BatchConsumer {
       await this.channel.prefetch(this.options.prefetch!);
 
       await this.consume();
+
+      this.isReconnecting = false;
+      this.retryCount = 0;
+      this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;
@@ -172,7 +188,43 @@ export default class BatchConsumer {
     }
   }
 
+  private attemptReconnect(): void {
+    this.isReconnecting = true;
+    this.consuming = false;
+
+    const reconnect = async () => {
+      if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
+        this.logger.error('Max reconnection attempts reached, exiting');
+        return;
+      }
+
+      this.retryCount += 1;
+
+      this.logger.info(
+        `Reconnection attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS}) in ${
+          this.currentRetryDelay / 1000
+        } seconds...`
+      );
+
+      setTimeout(async () => {
+        try {
+          await this.initialize();
+          this.logger.info('Reconnection successful');
+        } catch (err) {
+          this.logger.error('Reconnection attempt failed', { err });
+          this.retryCount += 1;
+          this.currentRetryDelay = Math.min(this.currentRetryDelay * 2, MAX_RETRY_DELAY_MS);
+          reconnect();
+        }
+      }, this.currentRetryDelay);
+    };
+
+    reconnect();
+  }
+
   public async close(): Promise<void> {
+    this.shutdownInProgress = true;
+
     try {
       await this.channel.close();
       await this.connection.close();

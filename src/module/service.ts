@@ -53,7 +53,7 @@ export function parseMessageHistoryDbEntries(
   return messages.reduce<MessageHistoryDbEntry[]>((acc, message) => {
     const { roomId, event, message: messageData } = message;
     const { requestId, data, session, latencyLog } = messageData;
-    const now = new Date().toISOString();
+    const now = new Date(data.timestamp).toISOString();
 
     try {
       acc.push([
@@ -84,7 +84,7 @@ export async function bulkInsertMessageHistory(
   pgClient: PoolClient,
   parsedMessageHistoryDbEntries: MessageHistoryDbEntry[]
 ): Promise<void> {
-  logger.debug(`Bulk inserting ${parsedMessageHistoryDbEntries.length} hostory message(s)`);
+  logger.debug(`Bulk inserting ${parsedMessageHistoryDbEntries.length} message(s)`);
 
   try {
     const placeholdersPerRow = parsedMessageHistoryDbEntries[0].length;

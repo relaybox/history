@@ -20,6 +20,7 @@ export async function handler(
 
   try {
     const parsedMessages = batch.map(parseMessage);
+    console.log(JSON.stringify(parsedMessages, null, 2));
     const messageDbEntries = parseMessageHistoryDbEntries(logger, parsedMessages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
     batch.forEach((message) => channel.ack(message));

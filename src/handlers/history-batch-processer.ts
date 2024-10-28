@@ -1,31 +1,23 @@
-import {
-  bulkInsertMessageHistory,
-  parseMessage,
-  parseMessageHistoryDbEntries
-} from '@/module/service';
+import { bulkInsertMessageHistory, parseMessageHistoryDbEntries } from '@/module/service';
 import { getLogger } from '@/util/logger';
-import { Channel, ConsumeMessage } from 'amqplib';
+import { ConsumeMessage } from 'amqplib';
 import { Pool } from 'pg';
 
 const logger = getLogger('history-batch-processer');
 
-export async function handler(
-  pgPool: Pool,
-  channel: Channel,
-  batch: ConsumeMessage[]
-): Promise<void> {
-  logger.debug(`Processing batch of ${batch.length} message(s)`);
+export async function handler(pgPool: Pool, messages: ConsumeMessage[]): Promise<void> {
+  logger.debug(`Processing batch of ${messages.length} message(s)`);
 
   const pgClient = await pgPool.connect();
 
+  console.log(JSON.stringify(messages, null, 2));
+
   try {
-    const parsedMessages = batch.map(parseMessage);
-    console.log(JSON.stringify(parsedMessages, null, 2));
-    const messageDbEntries = parseMessageHistoryDbEntries(logger, parsedMessages);
+    const messageDbEntries = parseMessageHistoryDbEntries(logger, messages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
-    batch.forEach((message) => channel.ack(message));
-    batch.length = 0;
   } catch (err: unknown) {
+    logger.error('Failed to process batch', { err });
+    throw err;
   } finally {
     pgClient.release();
   }

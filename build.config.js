@@ -12,8 +12,8 @@ esbuild
     outfile: 'build/index.js',
     external: [...Object.keys(pkg.dependencies || {})],
     plugins: [],
-    minify: true,
-    sourcemap: false
+    minify: false,
+    sourcemap: true
   })
   .then(() => {
     const srcCertsDir = path.resolve(__dirname, 'src', 'certs');

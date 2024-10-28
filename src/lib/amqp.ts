@@ -1,86 +1,114 @@
 import { getLogger } from '@/util/logger';
-import { Channel, connect, Connection } from 'amqplib';
+import amqp, { Channel, Connection } from 'amqplib';
+import { Logger } from 'winston';
 
-const logger = getLogger(`amqp`);
+const INITIAL_RETRY_DELAY_MS = 5000;
+const MAX_RETRY_DELAY_MS = 60000;
+const MAX_RETRY_ATTEMPTS = 10;
 
-const RABBIT_MQ_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING || '';
-const EXCHANGE_NAME = 'ds.persistence.durable';
-const QUEUE_TYPE = 'direct';
-const QUEUE_NAME = `persist`;
-const ROUTING_KEY = `message.persist`;
-const PRFETCH_COUNT = 20;
+export type BatchHandler = (messages: any[]) => Promise<void>;
 
-let connection: Connection | null = null;
-let channel: Channel | null = null;
+export default class Amqp {
+  private connectionString: string;
+  private connection: Connection;
+  private channel: Channel;
+  private logger: Logger;
+  public ready: Promise<void>;
+  private isReconnecting: boolean = false;
+  private retryCount: number = 0;
+  private currentRetryDelay: number = INITIAL_RETRY_DELAY_MS;
+  private shutdownInProgress: boolean = false;
 
-export async function getConnection(): Promise<Connection> {
-  if (connection) {
-    return connection;
+  protected constructor(connectionString: string) {
+    this.logger = getLogger(`amqp`);
+
+    this.connectionString = connectionString;
+
+    this.ready = this.initialize().catch((err) => {
+      this.logger.error('Error initializing connection', { err });
+    });
   }
 
-  try {
-    connection = await connect(RABBIT_MQ_CONNECTION_STRING);
-
-    connection.on('error', (err) => {
-      logger.error('AMQP connection error:', { err });
-    });
-
-    connection.on('close', () => {
-      logger.info('AMQP connection closed');
-    });
-
-    return connection;
-  } catch (err) {
-    logger.error('Error connecting to RabbitMQ:', { err });
-    throw err;
+  public static async createClient(connectionString: string): Promise<Amqp> {
+    const client = new Amqp(connectionString);
+    await client.initialize();
+    return client;
   }
-}
 
-export async function createChannel(connection: Connection): Promise<Channel> {
-  logger.debug('Creating channel');
-
-  try {
-    channel = await connection.createChannel();
-
-    await channel.assertExchange(EXCHANGE_NAME, QUEUE_TYPE, {
-      durable: true
-    });
-
-    await channel.assertQueue(QUEUE_NAME, {
-      durable: true
-    });
-
-    await channel.bindQueue(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
-
-    channel.prefetch(PRFETCH_COUNT);
-
-    return channel;
-  } catch (err) {
-    logger.error('Error creating channel:', { err });
-    throw err;
-  }
-}
-
-export async function cleanupAmqpConnection(): Promise<void> {
-  if (connection) {
+  public async initialize(): Promise<void> {
     try {
-      await connection.close();
+      this.connection = await amqp.connect(this.connectionString);
+
+      this.connection.on('error', (err) => {
+        this.logger.error('Connection error', { err });
+      });
+
+      this.connection.on('close', () => {
+        this.logger.warn('Connection closed');
+
+        if (!this.isReconnecting && !this.shutdownInProgress) {
+          this.attemptReconnect();
+        }
+      });
+
+      this.channel = await this.connection.createChannel();
+
+      this.isReconnecting = false;
+      this.retryCount = 0;
+      this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
     } catch (err) {
-      logger.error('Error closing amqp client', { err });
-    } finally {
-      connection = null;
+      this.logger.error('Failed to connect', { err });
+      throw err;
     }
   }
-}
 
-export async function cleanupAmqpChannel(): Promise<void> {
-  if (channel) {
+  public getChannel(): Channel {
+    return this.channel;
+  }
+
+  private attemptReconnect(): void {
+    this.isReconnecting = true;
+
+    const reconnect = async () => {
+      if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
+        this.logger.error('Max reconnection attempts reached, exiting');
+        return;
+      }
+
+      this.retryCount += 1;
+
+      this.logger.info(
+        `Reconnection attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS}) in ${
+          this.currentRetryDelay / 1000
+        } seconds...`
+      );
+
+      setTimeout(async () => {
+        try {
+          await this.initialize();
+          this.logger.info('Reconnection successful');
+        } catch (err) {
+          this.logger.error('Reconnection attempt failed', { err });
+          this.retryCount += 1;
+          this.currentRetryDelay = Math.min(this.currentRetryDelay * 2, MAX_RETRY_DELAY_MS);
+          reconnect();
+        }
+      }, this.currentRetryDelay);
+    };
+
+    reconnect();
+  }
+
+  public async close(): Promise<void> {
+    this.shutdownInProgress = true;
+
     try {
-      await channel.close();
+      await this.channel.close();
+      await this.connection.close();
+
+      this.logger.info('batch consumer closed');
     } catch (err) {
-      logger.error('Error closing amqp channel', { err });
-    } finally {
-      connection = null;
+      this.logger.error('Error closing batch consumer', { err });
     }
   }
 }

@@ -1,14 +1,10 @@
 import { getLogger } from '@/util/logger';
-import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
+import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
 const DEFAULT_BATCH_TIMEOUT_MS = 10000;
-
-const INITIAL_RETRY_DELAY_MS = 5000;
-const MAX_RETRY_DELAY_MS = 60000;
-const MAX_RETRY_ATTEMPTS = 10;
 
 export interface ExchangeConfig {
   name: string;
@@ -31,19 +27,14 @@ export type BatchHandler = (messages: any[]) => Promise<void>;
 export default class BatchConsumer {
   private batch: ConsumeMessage[] = [];
   private batchTimeout: NodeJS.Timeout | null = null;
-  private connection: Connection;
   private channel: Channel;
   private options: BatchConsumerOptions;
   private logger: Logger;
   private batchhandler: BatchHandler;
   private consuming: boolean = false;
   public ready: Promise<void>;
-  private isReconnecting: boolean = false;
-  private retryCount: number = 0;
-  private currentRetryDelay: number = INITIAL_RETRY_DELAY_MS;
-  private shutdownInProgress: boolean = false;
 
-  constructor(options: BatchConsumerOptions, batchHandler: BatchHandler) {
+  constructor(channel: Channel, options: BatchConsumerOptions, batchHandler: BatchHandler) {
     this.logger = getLogger(`batch-consumer`);
 
     this.options = {
@@ -54,30 +45,13 @@ export default class BatchConsumer {
     };
 
     this.batchhandler = batchHandler;
-
-    this.ready = this.initialize().catch((err) => {
-      this.logger.error('Error initializing batch consumer', { err });
-    });
+    this.channel = channel;
   }
 
-  public async initialize(): Promise<void> {
+  public async start(): Promise<void> {
+    this.logger.debug('Starting batch consumer');
+
     try {
-      this.connection = await amqp.connect(this.options.amqpConnectionString);
-
-      this.connection.on('error', (err) => {
-        this.logger.error('Connection error', { err });
-      });
-
-      this.connection.on('close', () => {
-        this.logger.warn('Connection closed');
-
-        if (!this.isReconnecting && !this.shutdownInProgress) {
-          this.attemptReconnect();
-        }
-      });
-
-      this.channel = await this.connection.createChannel();
-
       if (this.options.exchange) {
         const exchange = this.options.exchange;
 
@@ -98,10 +72,6 @@ export default class BatchConsumer {
       await this.channel.prefetch(this.options.prefetch!);
 
       await this.consume();
-
-      this.isReconnecting = false;
-      this.retryCount = 0;
-      this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;
@@ -123,6 +93,8 @@ export default class BatchConsumer {
   }
 
   private handleMessage(message: ConsumeMessage | null): void {
+    this.logger.debug(`Handling message`);
+
     if (message) {
       this.batch.push(message);
 
@@ -185,53 +157,6 @@ export default class BatchConsumer {
     } catch (err) {
       this.logger.warn('Failed to parse message content as JSON', content);
       return content;
-    }
-  }
-
-  private attemptReconnect(): void {
-    this.isReconnecting = true;
-    this.consuming = false;
-
-    const reconnect = async () => {
-      if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
-        this.logger.error('Max reconnection attempts reached, exiting');
-        return;
-      }
-
-      this.retryCount += 1;
-
-      this.logger.info(
-        `Reconnection attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS}) in ${
-          this.currentRetryDelay / 1000
-        } seconds...`
-      );
-
-      setTimeout(async () => {
-        try {
-          await this.initialize();
-          this.logger.info('Reconnection successful');
-        } catch (err) {
-          this.logger.error('Reconnection attempt failed', { err });
-          this.retryCount += 1;
-          this.currentRetryDelay = Math.min(this.currentRetryDelay * 2, MAX_RETRY_DELAY_MS);
-          reconnect();
-        }
-      }, this.currentRetryDelay);
-    };
-
-    reconnect();
-  }
-
-  public async close(): Promise<void> {
-    this.shutdownInProgress = true;
-
-    try {
-      await this.channel.close();
-      await this.connection.close();
-
-      this.logger.info('batch consumer closed');
-    } catch (err) {
-      this.logger.error('Error closing batch consumer', { err });
     }
   }
 }

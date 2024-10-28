@@ -1,86 +1,95 @@
 import { getLogger } from '@/util/logger';
-import { AsyncMessage, Connection, Consumer, ConsumerProps, Envelope } from 'rabbitmq-client';
+import amqplib, { Channel, Connection, ConsumeMessage } from 'amqplib';
+import { handler as historyBatchProcesser } from '@/handlers/history-batch-processer';
+import { getPgPool } from '@/lib/pg';
 
 const logger = getLogger('consumer');
+const pgPool = getPgPool();
 
-const RABBIT_MQ_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING;
+const RABBIT_MQ_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING || '';
 const EXCHANGE_NAME = 'ds.persistence.durable';
 const QUEUE_TYPE = 'direct';
 const QUEUE_NAME = `persist`;
 const ROUTING_KEY = `message.persist`;
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 2;
+const PRFETCH_COUNT = 20;
+const BUFFER_TIMEOUT_MS = 10000;
 
-const connection = new Connection(RABBIT_MQ_CONNECTION_STRING);
+let connection: Connection | null = null;
+let channel: Channel | null = null;
+let batchTimeout: NodeJS.Timeout | null = null;
 
-let consumer: Consumer | null = null;
-
-export function startConsumer(): Consumer {
-  if (consumer) {
-    logger.error(`Consumer already started`);
-    return consumer;
+async function initializeConnections(): Promise<void> {
+  if (!pgPool) {
+    throw new Error('Failed to initialize PG pool');
   }
-
-  logger.info('Creating amqp consumer');
-
-  const batch: any[] = [];
-  let batchTimeout: NodeJS.Timeout | null = null;
-
-  const consumerOptions: ConsumerProps = {
-    queue: QUEUE_NAME,
-    concurrency: 10,
-    noAck: false,
-    queueOptions: {
-      durable: true
-    },
-    qos: {
-      prefetchCount: 20
-    },
-    exchanges: [
-      {
-        exchange: EXCHANGE_NAME,
-        type: QUEUE_TYPE,
-        durable: true
-      }
-    ],
-    queueBindings: [
-      {
-        exchange: EXCHANGE_NAME,
-        routingKey: ROUTING_KEY
-      }
-    ]
-  };
-
-  consumer = connection.createConsumer(consumerOptions, (message: AsyncMessage) => {
-    batch.push(message.body);
-
-    if (batch.length === 1) {
-      batchTimeout = setTimeout(() => processBatch(batch), 10000);
-    } else if (batch.length >= BATCH_SIZE) {
-      processBatch(batch);
-    }
-  });
-
-  consumer.on('error', (err) => {
-    logger.error('Error handling message', { err });
-  });
-
-  return consumer;
 }
 
-export function processBatch(batch: any[]) {
-  console.log(JSON.stringify(batch, null, 2));
-  batch.length = 0;
+export async function startConsumer(): Promise<void> {
+  await initializeConnections();
+
+  const batch: any[] = [];
+
+  connection = await amqplib.connect(RABBIT_MQ_CONNECTION_STRING);
+  channel = await connection.createChannel();
+
+  await channel.assertExchange(EXCHANGE_NAME, QUEUE_TYPE, {
+    durable: true
+  });
+
+  await channel.assertQueue(QUEUE_NAME, {
+    durable: true
+  });
+
+  await channel.bindQueue(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
+
+  channel.prefetch(PRFETCH_COUNT);
+
+  channel.consume(QUEUE_NAME, (message: ConsumeMessage | null) => {
+    if (!message || !pgPool) {
+      return;
+    }
+
+    batch.push(message);
+
+    if (batch.length === 1) {
+      batchTimeout = setTimeout(
+        () => historyBatchProcesser(pgPool, channel!, batch),
+        BUFFER_TIMEOUT_MS
+      );
+    } else if (batch.length >= BATCH_SIZE) {
+      if (batchTimeout) {
+        clearTimeout(batchTimeout);
+      }
+
+      historyBatchProcesser(pgPool, channel!, batch);
+    }
+  });
 }
 
 export async function cleanupConsumer() {
-  if (consumer) {
-    try {
-      await consumer.close();
-    } catch (err) {
-      logger.error('Error ending amqp consumer', { err });
-    } finally {
-      logger.info('Amqp consumer disconnected through app termination');
-      consumer = null;
+  logger.info('Cleaning up resources...');
+
+  try {
+    if (batchTimeout) {
+      clearTimeout(batchTimeout);
     }
+
+    if (channel) {
+      await channel.close();
+      logger.info('Channel closed');
+    }
+
+    if (connection) {
+      await connection.close();
+      logger.info('Connection closed');
+    }
+  } catch (err) {
+    logger.error('Error cleaning up resources:', err);
+  } finally {
+    logger.info('Resources cleaned up.');
+    channel = null;
+    connection = null;
+    batchTimeout = null;
   }
 }

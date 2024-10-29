@@ -25,6 +25,7 @@ export default class Rmq {
   private retryCount: number = 0;
   private currentRetryDelay: number = INITIAL_RETRY_DELAY_MS;
   private shutdownInProgress: boolean = false;
+  private batchConsumers: BatchConsumer[] = [];
 
   protected constructor(connectionString: string) {
     this.logger = getLogger(`amqp`);
@@ -60,6 +61,10 @@ export default class Rmq {
       });
 
       this.channel = await this.connection.createChannel();
+
+      for (const consumer of this.batchConsumers) {
+        consumer.setChannel(this.channel);
+      }
 
       this.resetReconnectOptions();
 
@@ -121,6 +126,8 @@ export default class Rmq {
       const batchConsumer = new BatchConsumer(this.channel, options, batchHandler);
 
       await batchConsumer.start();
+
+      this.batchConsumers.push(batchConsumer);
 
       return batchConsumer;
     } catch (err) {

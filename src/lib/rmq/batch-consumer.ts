@@ -46,11 +46,8 @@ export default class BatchConsumer {
       ...options
     };
 
-    this.batchhandler = batchHandler;
     this.channel = channel;
-
-    eventBus.on(AmqpEvents.AMQP_READY, this.start.bind(this));
-    eventBus.on(AmqpEvents.AMQP_CLOSE, this.stop.bind(this));
+    this.batchhandler = batchHandler;
   }
 
   public async start(): Promise<void> {
@@ -65,6 +62,15 @@ export default class BatchConsumer {
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;
+    }
+  }
+
+  public setChannel(channel: Channel): void {
+    this.channel = channel;
+
+    if (this.consuming) {
+      this.stop();
+      this.start().catch((err) => this.logger.error('Failed to restart consumer', { err }));
     }
   }
 
@@ -140,9 +146,9 @@ export default class BatchConsumer {
     try {
       await this.batchhandler(messages);
 
-      originalMessages.forEach((message) => {
+      for (const message of originalMessages) {
         this.channel.ack(message);
-      });
+      }
 
       this.logger.info(`Processed and acknowledged ${messages.length} message(s)`);
     } catch (err) {

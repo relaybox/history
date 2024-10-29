@@ -1,4 +1,4 @@
-import BatchConsumer, { BatchConsumerOptions } from '@/lib/rmq/batch-consumer';
+import { BatchConsumerOptions } from '@/lib/rmq/batch-consumer';
 import { getLogger } from '@/util/logger';
 import { handler as historyBatchProcesser } from '@/handlers/history-batch-processer';
 import { getPgPool } from '@/lib/pg';
@@ -39,9 +39,8 @@ export async function startConsumer(): Promise<void> {
     batchTimeoutMs: BATCH_TIMEOUT_MS
   };
 
-  const batchConsumer = await connection.createBatchConsumer(
-    batchConsumerOptions,
-    (messages: ConsumeMessage[]) => historyBatchProcesser(pgPool, messages)
+  await connection.createBatchConsumer(batchConsumerOptions, (messages: ConsumeMessage[]) =>
+    historyBatchProcesser(pgPool, messages)
   );
 }
 

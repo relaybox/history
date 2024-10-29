@@ -10,6 +10,14 @@ const MAX_RETRY_ATTEMPTS = 10;
 
 export type BatchHandler = (messages: any[]) => Promise<void>;
 
+enum ConnectionState {
+  INITIAL = 'initial',
+  CONNECTED = 'connected',
+  RECONNECTING = 'reconnecting',
+  SHUTTING_DOWN = 'shutting_down',
+  CLOSED = 'closed'
+}
+
 export enum AmqpEvents {
   AMQP_READY = 'amqp:ready',
   AMQP_CLOSE = 'amqp:close'
@@ -21,10 +29,9 @@ export default class Rmq {
   private channel: Channel;
   private logger: Logger;
   public ready: Promise<void>;
-  private isReconnecting: boolean = false;
+  private connectionState: ConnectionState = ConnectionState.INITIAL;
   private retryCount: number = 0;
   private currentRetryDelay: number = INITIAL_RETRY_DELAY_MS;
-  private shutdownInProgress: boolean = false;
   private batchConsumers: BatchConsumer[] = [];
 
   protected constructor(connectionString: string) {
@@ -43,15 +50,18 @@ export default class Rmq {
     try {
       this.connection = await amqp.connect(this.connectionString);
 
+      this.connectionState = ConnectionState.CONNECTED;
+
       this.connection.on('error', (err) => {
         this.logger.error('Connection error', { err });
       });
 
       this.connection.on('close', () => {
         this.logger.warn('Connection closed');
+
         eventBus.emit(AmqpEvents.AMQP_CLOSE);
 
-        if (!this.isReconnecting && !this.shutdownInProgress) {
+        if (this.connectionState !== ConnectionState.SHUTTING_DOWN) {
           this.attemptReconnect();
         }
       });
@@ -72,7 +82,7 @@ export default class Rmq {
   }
 
   private resetReconnectOptions(): void {
-    this.isReconnecting = false;
+    this.connectionState = ConnectionState.CONNECTED;
     this.retryCount = 0;
     this.currentRetryDelay = INITIAL_RETRY_DELAY_MS;
   }
@@ -82,7 +92,7 @@ export default class Rmq {
   }
 
   private attemptReconnect(): void {
-    this.isReconnecting = true;
+    this.connectionState = ConnectionState.RECONNECTING;
 
     const reconnect = async () => {
       if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -132,12 +142,16 @@ export default class Rmq {
   }
 
   public async close(): Promise<void> {
-    this.shutdownInProgress = true;
+    if (this.connectionState === ConnectionState.SHUTTING_DOWN) {
+      return;
+    }
+
+    this.connectionState = ConnectionState.SHUTTING_DOWN;
 
     try {
       await this.channel.close();
       await this.connection.close();
-
+      this.connectionState = ConnectionState.CLOSED;
       this.logger.info('Rmq connection closed');
     } catch (err) {
       this.logger.error('Error closing rmq connection', { err });

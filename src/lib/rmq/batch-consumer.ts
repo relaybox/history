@@ -34,7 +34,6 @@ export default class BatchConsumer {
   private logger: Logger;
   private batchhandler: BatchHandler;
   private consuming: boolean = false;
-  private resetBatchTimeout: boolean = false;
   public ready: Promise<void>;
 
   constructor(channel: Channel, options: BatchConsumerOptions, batchHandler: BatchHandler) {
@@ -122,7 +121,6 @@ export default class BatchConsumer {
 
       if (!this.batchTimeout) {
         this.startBatchTimeout();
-        this.resetBatchTimeout = false;
       }
 
       if (this.batch.length >= this.options.batchSize!) {
@@ -140,7 +138,6 @@ export default class BatchConsumer {
   }
 
   private async processBatch(): Promise<void> {
-    console.log(this.consuming);
     if (this.batch.length === 0 || !this.consuming) {
       return;
     }

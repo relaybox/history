@@ -31,10 +31,6 @@ export default class Rmq {
     this.logger = getLogger(`amqp`);
 
     this.connectionString = connectionString;
-
-    this.ready = this.initialize().catch((err) => {
-      this.logger.error('Error initializing connection', { err });
-    });
   }
 
   public static async connect(connectionString: string): Promise<Rmq> {
@@ -63,7 +59,7 @@ export default class Rmq {
       this.channel = await this.connection.createChannel();
 
       for (const consumer of this.batchConsumers) {
-        await consumer.setChannel(this.channel);
+        consumer.setChannel(this.channel);
       }
 
       this.resetReconnectOptions();

@@ -14,8 +14,8 @@ const QUEUE_TYPE = 'direct';
 const QUEUE_NAME = `persist`;
 const ROUTING_KEY = `message.persist`;
 const PREFETCH_COUNT = 20;
-const BATCH_SIZE = 10;
-const BATCH_TIMEOUT_MS = 3000;
+const BATCH_SIZE = 20;
+const BATCH_TIMEOUT_MS = 5000;
 
 let connection: Rmq | null = null;
 

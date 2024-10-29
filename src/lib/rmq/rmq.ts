@@ -63,7 +63,7 @@ export default class Rmq {
       this.channel = await this.connection.createChannel();
 
       for (const consumer of this.batchConsumers) {
-        consumer.setChannel(this.channel);
+        await consumer.setChannel(this.channel);
       }
 
       this.resetReconnectOptions();
@@ -108,7 +108,7 @@ export default class Rmq {
           this.logger.info('Reconnection successful');
         } catch (err) {
           this.logger.error('Reconnection attempt failed', { err });
-          this.currentRetryDelay = Math.min(this.currentRetryDelay * 2, MAX_RETRY_DELAY_MS);
+          this.currentRetryDelay = Math.min(this.currentRetryDelay * 1.5, MAX_RETRY_DELAY_MS);
           reconnect();
         }
       }, this.currentRetryDelay);

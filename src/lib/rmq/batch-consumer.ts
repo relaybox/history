@@ -1,6 +1,8 @@
 import { getLogger } from '@/util/logger';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
+import { eventBus } from '../event-bus';
+import { AmqpEvents } from './rmq';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
@@ -32,6 +34,7 @@ export default class BatchConsumer {
   private logger: Logger;
   private batchhandler: BatchHandler;
   private consuming: boolean = false;
+  private resetBatchTimeout: boolean = false;
   public ready: Promise<void>;
 
   constructor(channel: Channel, options: BatchConsumerOptions, batchHandler: BatchHandler) {
@@ -46,10 +49,16 @@ export default class BatchConsumer {
 
     this.channel = channel;
     this.batchhandler = batchHandler;
+
+    eventBus.on(AmqpEvents.AMQP_CLOSE, this.stop.bind(this));
   }
 
   public async start(): Promise<void> {
     this.logger.debug('Starting batch consumer');
+
+    if (this.batch.length > 0) {
+      this.startBatchTimeout();
+    }
 
     try {
       const exchange = this.options.exchange;
@@ -63,17 +72,20 @@ export default class BatchConsumer {
     }
   }
 
-  public setChannel(channel: Channel): void {
-    this.channel = channel;
+  public stop(): void {
+    this.consuming = false;
 
-    if (this.consuming) {
-      this.stop();
-      this.start().catch((err) => this.logger.error('Failed to restart consumer', { err }));
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+      this.batchTimeout = null;
     }
   }
 
-  public stop(): void {
-    this.consuming = false;
+  public setChannel(channel: Channel): void {
+    this.channel = channel;
+
+    this.stop();
+    this.start().catch((err) => this.logger.error('Failed to restart consumer', { err }));
   }
 
   private async bindQueue(exchange: ExchangeConfig): Promise<void> {
@@ -108,8 +120,9 @@ export default class BatchConsumer {
     if (message) {
       this.batch.push(message);
 
-      if (this.batch.length === 1) {
+      if (!this.batchTimeout) {
         this.startBatchTimeout();
+        this.resetBatchTimeout = false;
       }
 
       if (this.batch.length >= this.options.batchSize!) {
@@ -127,7 +140,8 @@ export default class BatchConsumer {
   }
 
   private async processBatch(): Promise<void> {
-    if (this.batch.length === 0) {
+    console.log(this.consuming);
+    if (this.batch.length === 0 || !this.consuming) {
       return;
     }
 

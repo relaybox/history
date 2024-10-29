@@ -1,7 +1,7 @@
 import { getLogger } from '@/util/logger';
 import amqp, { Channel, Connection } from 'amqplib';
 import { Logger } from 'winston';
-import { eventBus } from '../event-bus';
+import { eventBus } from '@/lib/event-bus';
 import BatchConsumer, { BatchConsumerOptions } from './batch-consumer';
 
 const INITIAL_RETRY_DELAY_MS = 5000;
@@ -108,7 +108,6 @@ export default class Rmq {
           this.logger.info('Reconnection successful');
         } catch (err) {
           this.logger.error('Reconnection attempt failed', { err });
-          this.retryCount += 1;
           this.currentRetryDelay = Math.min(this.currentRetryDelay * 2, MAX_RETRY_DELAY_MS);
           reconnect();
         }
@@ -143,9 +142,9 @@ export default class Rmq {
       await this.channel.close();
       await this.connection.close();
 
-      this.logger.info('batch consumer closed');
+      this.logger.info('Rmq connection closed');
     } catch (err) {
-      this.logger.error('Error closing batch consumer', { err });
+      this.logger.error('Error closing rmq connection', { err });
     }
   }
 }

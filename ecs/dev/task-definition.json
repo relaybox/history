@@ -63,6 +63,10 @@
           "value": "${DB_USER}"
         },
         {
+          "name": "RABBIT_MQ_CONNECTION_STRING",
+          "value": "${RABBIT_MQ_CONNECTION_STRING}"
+        },
+        {
           "name": "REDIS_HOST",
           "value": "${REDIS_HOST}"
         },

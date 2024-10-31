@@ -49,9 +49,9 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
           AWS_ECS_EXECUTION_ROLE_ARN: ${{ secrets.AWS_ECS_EXECUTION_ROLE_ARN }}
           AWS_ECS_TASK_ROLE_ARN: ${{ secrets.AWS_ECS_TASK_ROLE_ARN }}
-          BATCH_PREFETCH_COUNT: ${{ secrets.BATCH_PREFETCH_COUNT }}
-          BATCH_SIZE: ${{ secrets.BATCH_SIZE }}
-          BATCH_TIMEOUT_MS: ${{ secrets.BATCH_TIMEOUT_MS }}
+          BATCH_PREFETCH_COUNT: ${{ vars.BATCH_PREFETCH_COUNT }}
+          BATCH_SIZE: ${{ vars.BATCH_SIZE }}
+          BATCH_TIMEOUT_MS: ${{ vars.BATCH_TIMEOUT_MS }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_PORT: ${{ secrets.DB_PORT }}

@@ -62,7 +62,7 @@ export default class BatchConsumer {
     try {
       const exchange = this.options.exchange;
 
-      this.bindQueue(exchange);
+      await this.bindQueue(exchange);
 
       await this.consume();
     } catch (err) {

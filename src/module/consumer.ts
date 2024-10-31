@@ -13,9 +13,9 @@ const EXCHANGE_NAME = 'ds.persistence.durable';
 const QUEUE_TYPE = 'direct';
 const QUEUE_NAME = `persist`;
 const ROUTING_KEY = `message.persist`;
-const PREFETCH_COUNT = 20;
-const BATCH_SIZE = 20;
-const BATCH_TIMEOUT_MS = 5000;
+const BATCH_PREFETCH_COUNT = Number(process.env.BATCH_PREFETCH_COUNT || 20);
+const BATCH_SIZE = Number(process.env.BATCH_SIZE || 20);
+const BATCH_TIMEOUT_MS = Number(process.env.BATCH_TIMEOUT_MS || 5000);
 
 let connection: Rmq | null = null;
 
@@ -34,7 +34,7 @@ export async function startConsumer(): Promise<void> {
     },
     queue: QUEUE_NAME,
     routingKey: ROUTING_KEY,
-    prefetch: PREFETCH_COUNT,
+    prefetch: BATCH_PREFETCH_COUNT,
     batchSize: BATCH_SIZE,
     batchTimeoutMs: BATCH_TIMEOUT_MS
   };

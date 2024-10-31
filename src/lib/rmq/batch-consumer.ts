@@ -6,7 +6,7 @@ import { AmqpEvents } from './rmq';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
-const DEFAULT_BATCH_TIMEOUT_MS = 3000;
+const DEFAULT_BATCH_TIMEOUT_MS = 10000;
 
 export interface ExchangeConfig {
   name: string;

@@ -8,8 +8,6 @@ const INITIAL_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 60000;
 const MAX_RETRY_ATTEMPTS = 10;
 
-export type BatchHandler = (messages: any[]) => Promise<void>;
-
 enum ConnectionState {
   INITIAL = 'initial',
   CONNECTED = 'connected',
@@ -28,6 +26,8 @@ export enum BatchConsumerEvent {
   MESSAGE_FAILED = 'message:failed',
   BATCH_PROCESSED = 'batch:processed'
 }
+
+export type BatchHandler = (messages: any[]) => Promise<void>;
 
 export interface ExchangeConfig {
   name: string;

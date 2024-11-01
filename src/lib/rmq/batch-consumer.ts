@@ -2,14 +2,18 @@ import { getLogger } from '@/util/logger';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
 import { eventBus } from '../event-bus';
-import { AmqpEvent, BatchConsumerEvent, BatchConsumerOptions, ExchangeConfig } from './rmq';
+import {
+  AmqpEvent,
+  BatchConsumerEvent,
+  BatchConsumerOptions,
+  BatchHandler,
+  ExchangeConfig
+} from './rmq';
 import EventEmitter from 'events';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
 const DEFAULT_BATCH_TIMEOUT_MS = 10000;
-
-export type BatchHandler = (messages: any[]) => Promise<void>;
 
 export default class BatchConsumer extends EventEmitter {
   private batch: ConsumeMessage[] = [];

@@ -3,6 +3,7 @@ import { handler as historyBatchProcesser } from '@/handlers/history-batch-proce
 import { getPgPool } from '@/lib/pg';
 import { ConsumeMessage } from 'amqplib';
 import Rmq, { BatchConsumerEvent, BatchConsumerOptions } from '@/lib/rmq/rmq';
+import { ParsedMessage } from './types';
 
 const logger = getLogger('consumer');
 const pgPool = getPgPool();
@@ -40,12 +41,17 @@ export async function startConsumer(): Promise<void> {
 
   const batchConsumer = await connection.createBatchConsumer(
     batchConsumerOptions,
-    (messages: ConsumeMessage[]) => historyBatchProcesser(pgPool, messages)
+    (messages: ParsedMessage[]) => historyBatchProcesser(pgPool, messages)
   );
 
-  batchConsumer.on(BatchConsumerEvent.MESSAGE_ACKNOWLEDGED, (message: ConsumeMessage) => {
-    console.log('Message acknowledged', Buffer.from(message.content).toString());
-  });
+  // batchConsumer.on(BatchConsumerEvent.MESSAGE_ACKNOWLEDGED, (message: ConsumeMessage) => {
+  //   console.log('Message acknowledged', Buffer.from(message.content).toString());
+  // });
+
+  // batchConsumer.on(BatchConsumerEvent.BATCH_PROCESSED, (messages: ParsedMessage[]) => {
+  //   // const parsedMessages = messages.map((message) => Buffer.from(message.content).toString());
+  //   console.log('Parsed messages', messages);
+  // });
 }
 
 export async function stopConsumer(): Promise<void> {

@@ -25,7 +25,8 @@ export enum AmqpEvent {
 
 export enum BatchConsumerEvent {
   MESSAGE_ACKNOWLEDGED = 'message:acknowledged',
-  MESSAGE_FAILED = 'message:failed'
+  MESSAGE_FAILED = 'message:failed',
+  BATCH_PROCESSED = 'batch:processed'
 }
 
 export interface ExchangeConfig {

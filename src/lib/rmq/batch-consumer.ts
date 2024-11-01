@@ -159,6 +159,8 @@ export default class BatchConsumer extends EventEmitter {
       }
 
       this.logger.info(`Processed and acknowledged ${messages.length} message(s)`);
+
+      this.emit(BatchConsumerEvent.BATCH_PROCESSED, messages);
     } catch (err) {
       this.logger.error('Error processing batch', { err });
 

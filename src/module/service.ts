@@ -64,3 +64,5 @@ export async function bulkInsertMessageHistory(
     throw err;
   }
 }
+
+// export async function deleteCachedMessage

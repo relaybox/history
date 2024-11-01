@@ -2,31 +2,16 @@ import { getLogger } from '@/util/logger';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { Logger } from 'winston';
 import { eventBus } from '../event-bus';
-import { AmqpEvents } from './rmq';
+import { AmqpEvent, BatchConsumerEvent, BatchConsumerOptions, ExchangeConfig } from './rmq';
+import EventEmitter from 'events';
 
 const DEFAULT_PREFETCH_COUNT = 20;
 const DEFAUL_BATCH_SIZE = 10;
 const DEFAULT_BATCH_TIMEOUT_MS = 10000;
 
-export interface ExchangeConfig {
-  name: string;
-  type: string;
-  durable?: boolean;
-}
-
-export interface BatchConsumerOptions {
-  amqpConnectionString: string;
-  exchange: ExchangeConfig;
-  queue: string;
-  routingKey: string;
-  prefetch?: number;
-  batchSize?: number;
-  batchTimeoutMs?: number;
-}
-
 export type BatchHandler = (messages: any[]) => Promise<void>;
 
-export default class BatchConsumer {
+export default class BatchConsumer extends EventEmitter {
   private batch: ConsumeMessage[] = [];
   private batchTimeout: NodeJS.Timeout | null = null;
   private channel: Channel;
@@ -34,9 +19,12 @@ export default class BatchConsumer {
   private logger: Logger;
   private batchhandler: BatchHandler;
   private consuming: boolean = false;
+  private consumerTag: string | null = null;
   public ready: Promise<void>;
 
   constructor(channel: Channel, options: BatchConsumerOptions, batchHandler: BatchHandler) {
+    super();
+
     this.logger = getLogger(`batch-consumer`);
 
     this.options = {
@@ -49,7 +37,7 @@ export default class BatchConsumer {
     this.channel = channel;
     this.batchhandler = batchHandler;
 
-    eventBus.on(AmqpEvents.AMQP_CLOSE, this.stop.bind(this));
+    eventBus.on(AmqpEvent.AMQP_CLOSE, this.stop.bind(this));
   }
 
   public async start(): Promise<void> {
@@ -71,8 +59,12 @@ export default class BatchConsumer {
     }
   }
 
-  public stop(): void {
+  public async stop(): Promise<void> {
     this.consuming = false;
+
+    if (this.consumerTag) {
+      await this.channel.cancel(this.consumerTag);
+    }
 
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout);
@@ -106,9 +98,15 @@ export default class BatchConsumer {
 
     this.consuming = true;
 
-    await this.channel.consume(this.options.queue, this.handleMessage.bind(this), {
-      noAck: false
-    });
+    const { consumerTag } = await this.channel.consume(
+      this.options.queue,
+      this.handleMessage.bind(this),
+      {
+        noAck: false
+      }
+    );
+
+    this.consumerTag = consumerTag;
 
     this.logger.info(`Started consuming messages from queue: ${this.options.queue}`);
   }
@@ -157,15 +155,17 @@ export default class BatchConsumer {
 
       for (const message of originalMessages) {
         this.channel.ack(message);
+        this.emit(BatchConsumerEvent.MESSAGE_ACKNOWLEDGED, message);
       }
 
       this.logger.info(`Processed and acknowledged ${messages.length} message(s)`);
     } catch (err) {
       this.logger.error('Error processing batch', { err });
 
-      originalMessages.forEach((message) => {
+      for (const message of originalMessages) {
         this.channel.nack(message, false, false);
-      });
+        this.emit(BatchConsumerEvent.MESSAGE_FAILED, message);
+      }
     }
   }
 

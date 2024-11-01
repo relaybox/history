@@ -2,7 +2,7 @@ import { getLogger } from '@/util/logger';
 import amqp, { Channel, Connection } from 'amqplib';
 import { Logger } from 'winston';
 import { eventBus } from '@/lib/event-bus';
-import BatchConsumer, { BatchConsumerOptions } from './batch-consumer';
+import BatchConsumer from './batch-consumer';
 
 const INITIAL_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 60000;
@@ -18,9 +18,30 @@ enum ConnectionState {
   CLOSED = 'closed'
 }
 
-export enum AmqpEvents {
+export enum AmqpEvent {
   AMQP_READY = 'amqp:ready',
   AMQP_CLOSE = 'amqp:close'
+}
+
+export enum BatchConsumerEvent {
+  MESSAGE_ACKNOWLEDGED = 'message:acknowledged',
+  MESSAGE_FAILED = 'message:failed'
+}
+
+export interface ExchangeConfig {
+  name: string;
+  type: string;
+  durable?: boolean;
+}
+
+export interface BatchConsumerOptions {
+  amqpConnectionString: string;
+  exchange: ExchangeConfig;
+  queue: string;
+  routingKey: string;
+  prefetch?: number;
+  batchSize?: number;
+  batchTimeoutMs?: number;
 }
 
 export default class Rmq {
@@ -59,7 +80,7 @@ export default class Rmq {
       this.connection.on('close', () => {
         this.logger.warn('Connection closed');
 
-        eventBus.emit(AmqpEvents.AMQP_CLOSE);
+        eventBus.emit(AmqpEvent.AMQP_CLOSE);
 
         if (this.connectionState !== ConnectionState.SHUTTING_DOWN) {
           this.attemptReconnect();
@@ -74,7 +95,7 @@ export default class Rmq {
 
       this.resetReconnectOptions();
 
-      eventBus.emit(AmqpEvents.AMQP_READY);
+      eventBus.emit(AmqpEvent.AMQP_READY);
     } catch (err) {
       this.logger.error('Failed to connect', { err });
       throw err;

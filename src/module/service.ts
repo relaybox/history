@@ -16,7 +16,7 @@ export function parseMessageHistoryDbEntries(
 
   return messages.reduce<MessageHistoryDbEntry[]>((acc, message) => {
     const { roomId, event, message: messageData } = message;
-    const { requestId, data, session, latencyLog } = messageData;
+    const { requestId, data, session } = messageData;
     const now = new Date(data.timestamp).toISOString();
 
     try {

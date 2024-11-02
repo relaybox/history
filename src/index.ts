@@ -14,6 +14,10 @@ async function startService() {
     throw new Error('Pg pool not initialized');
   }
 
+  if (!redisClient) {
+    throw new Error('Redis client not initialized');
+  }
+
   await redisClient.connect();
 
   startConsumer(pgPool, redisClient);

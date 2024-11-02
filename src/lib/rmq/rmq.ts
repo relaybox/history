@@ -152,8 +152,6 @@ export default class Rmq {
     try {
       const batchConsumer = new BatchConsumer(this.channel, options, batchHandler);
 
-      await batchConsumer.start();
-
       this.batchConsumers.push(batchConsumer);
 
       return batchConsumer;

@@ -39,14 +39,7 @@ export async function startConsumer(pgPool: Pool, redisClient: RedisClient): Pro
     (messages: ParsedMessage[]) => historyBatchProcesser(pgPool, redisClient, messages)
   );
 
-  // batchConsumer.on(BatchConsumerEvent.MESSAGE_ACKNOWLEDGED, (message: ConsumeMessage) => {
-  //   console.log('Message acknowledged', Buffer.from(message.content).toString());
-  // });
-
-  // batchConsumer.on(BatchConsumerEvent.BATCH_PROCESSED, (messages: ParsedMessage[]) => {
-  //   // const parsedMessages = messages.map((message) => Buffer.from(message.content).toString());
-  //   console.log('Parsed messages', messages);
-  // });
+  batchConsumer.start();
 }
 
 export async function stopConsumer(): Promise<void> {

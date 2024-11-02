@@ -1,12 +1,23 @@
 import 'dotenv/config';
 
 import { getLogger } from '@/util/logger';
-import { cleanupPgPool } from '@/lib/pg';
+import { cleanupPgPool, getPgPool } from '@/lib/pg';
 import { startConsumer, stopConsumer } from './module/consumer';
+import { cleanupRedisClient, getRedisClient } from './lib/redis';
 
 const logger = getLogger('history-service');
+const pgPool = getPgPool();
+const redisClient = getRedisClient();
 
-startConsumer();
+async function startService() {
+  if (!pgPool) {
+    throw new Error('Pg pool not initialized');
+  }
+
+  await redisClient.connect();
+
+  startConsumer(pgPool, redisClient);
+}
 
 async function shutdown(signal: string): Promise<void> {
   logger.info(`${signal} received, shutting down session worker`);
@@ -17,7 +28,7 @@ async function shutdown(signal: string): Promise<void> {
   }, 10000);
 
   try {
-    await Promise.all([stopConsumer(), cleanupPgPool()]);
+    await Promise.all([stopConsumer(), cleanupPgPool(), cleanupRedisClient()]);
 
     clearTimeout(shutdownTimeout);
 
@@ -28,6 +39,8 @@ async function shutdown(signal: string): Promise<void> {
     process.exit(1);
   }
 }
+
+startService();
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));

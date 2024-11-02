@@ -1,7 +1,12 @@
 import { Logger } from 'winston';
 import { PoolClient } from 'pg';
 import * as db from './db';
-import { MessageHistoryDbEntry } from './types';
+import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
+import { RedisClient } from '@/lib/redis';
+
+export function getBufferKey(nspRoomId: string): string {
+  return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
+}
 
 export function parseMessageHistoryDbEntries(
   logger: Logger,
@@ -65,4 +70,44 @@ export async function bulkInsertMessageHistory(
   }
 }
 
-// export async function deleteCachedMessage
+export async function invalidateCachedMessages(
+  logger: Logger,
+  redisClient: RedisClient,
+  messages: ParsedMessage[]
+): Promise<void> {
+  logger.debug(`Invalidating ${messages.length} cached message(s)`);
+
+  const multi = redisClient.multi();
+
+  try {
+    const invalidationMap = createInvalidationMap(messages);
+
+    for (const [nspRoomId, score] of invalidationMap.entries()) {
+      const key = getBufferKey(nspRoomId);
+      multi.zRemRangeByScore(key, '-inf', score);
+    }
+
+    await multi.exec();
+  } catch (err: unknown) {
+    logger.error(`Failed to invalidate cached message(s)`, { err });
+    throw err;
+  }
+}
+
+export function createInvalidationMap(messages: ParsedMessage[]): Map<string, number> {
+  const invalidationMap = new Map<string, number>();
+
+  for (const messageData of messages) {
+    const message = messageData.message;
+    const nspRoomId = message.nspRoomId;
+    const timestamp = message.data.timestamp;
+
+    const existingTimestamp = invalidationMap.get(nspRoomId);
+
+    if (!existingTimestamp || timestamp > existingTimestamp) {
+      invalidationMap.set(nspRoomId, timestamp);
+    }
+  }
+
+  return invalidationMap;
+}

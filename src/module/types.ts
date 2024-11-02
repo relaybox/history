@@ -46,3 +46,7 @@ export interface ParsedMessage {
   event: string;
   message: Message;
 }
+
+export enum KeyPrefix {
+  HISTORY = 'history'
+}

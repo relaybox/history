@@ -18,6 +18,7 @@ export function parseMessageHistoryDbEntries(
     const { roomId, event, message: messageData } = message;
     const { requestId, data, session } = messageData;
     const now = new Date(data.timestamp).toISOString();
+    const body = { $: data.body };
 
     try {
       acc.push([
@@ -31,7 +32,7 @@ export function parseMessageHistoryDbEntries(
         roomId,
         event,
         requestId,
-        data.body,
+        body,
         now,
         now
       ]);

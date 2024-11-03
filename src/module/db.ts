@@ -9,3 +9,32 @@ export function getHistoryTtlhours(pgClient: PoolClient, nspRoomId: string): Pro
 
   return pgClient.query(query, [pid]);
 }
+
+export function bulkInsertMessageHistory(
+  pgClient: PoolClient,
+  queryPlaceholders: string[],
+  values: any[]
+): Promise<QueryResult> {
+  const query = `
+    INSERT INTO message_history (
+      id, 
+      "appPid", 
+      "keyId", 
+      uid, 
+      "clientId", 
+      "connectionId", 
+      "socketId", 
+      "roomId", 
+      event, 
+      "requestId", 
+      body, 
+      "createdAt", 
+      "updatedAt"
+    )
+    VALUES ${queryPlaceholders}
+    ON CONFLICT (id) 
+    DO NOTHING;
+  `;
+
+  return pgClient.query(query, values);
+}

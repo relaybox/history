@@ -23,6 +23,18 @@
           "value": "${AWS_REGION}"
         },
         {
+          "name": "BATCH_PREFETCH_COUNT",
+          "value": "${BATCH_PREFETCH_COUNT}"
+        },
+        {
+          "name": "BATCH_SIZE",
+          "value": "${BATCH_SIZE}"
+        },
+        {
+          "name": "BATCH_TIMEOUT_MS",
+          "value": "${BATCH_TIMEOUT_MS}"
+        },
+        {
           "name": "DB_HOST",
           "value": "${DB_HOST}"
         },
@@ -49,6 +61,10 @@
         {
           "name": "DB_USER",
           "value": "${DB_USER}"
+        },
+        {
+          "name": "RABBIT_MQ_CONNECTION_STRING",
+          "value": "${RABBIT_MQ_CONNECTION_STRING}"
         },
         {
           "name": "REDIS_HOST",

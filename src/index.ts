@@ -5,7 +5,7 @@ import { cleanupPgPool, getPgPool } from '@/lib/pg';
 import { startConsumer, stopConsumer } from './module/consumer';
 import { cleanupRedisClient, getRedisClient } from './lib/redis';
 
-// FORCE DEPLOY
+// FORCE DEPLOY, 1
 
 const logger = getLogger('history-service');
 const pgPool = getPgPool();

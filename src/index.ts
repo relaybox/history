@@ -34,7 +34,9 @@ async function shutdown(signal: string): Promise<void> {
   }, 10000);
 
   try {
-    await Promise.all([stopConsumer(), cleanupPgPool(), cleanupRedisClient()]);
+    await stopConsumer();
+
+    await Promise.all([cleanupPgPool(), cleanupRedisClient()]);
 
     clearTimeout(shutdownTimeout);
 

@@ -38,6 +38,7 @@ export interface ExchangeConfig {
 export interface BatchConsumerOptions {
   amqpConnectionString: string;
   exchange: ExchangeConfig;
+  deadLetterExchange?: ExchangeConfig;
   queue: string;
   routingKey: string;
   prefetch?: number;
@@ -161,6 +162,14 @@ export default class Rmq {
     }
   }
 
+  private async drainBatchConsumers(): Promise<void> {
+    this.logger.info('Draining batch consumers');
+
+    for (const batchConsumer of this.batchConsumers) {
+      await batchConsumer.drain();
+    }
+  }
+
   public async close(): Promise<void> {
     if (this.connectionState === ConnectionState.SHUTTING_DOWN) {
       return;
@@ -169,9 +178,15 @@ export default class Rmq {
     this.connectionState = ConnectionState.SHUTTING_DOWN;
 
     try {
+      if (this.batchConsumers.length) {
+        await this.drainBatchConsumers();
+      }
+
       await this.channel.close();
       await this.connection.close();
+
       this.connectionState = ConnectionState.CLOSED;
+
       this.logger.info('Rmq connection closed');
     } catch (err) {
       this.logger.error('Error closing rmq connection', { err });

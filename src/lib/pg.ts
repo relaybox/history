@@ -44,8 +44,9 @@ export async function cleanupPgPool(): Promise<void> {
     try {
       await pgPool.end();
     } catch (err) {
-      logger.error('Error ending PG pool', { err });
+      logger.error('Error ending pg pool', { err });
     } finally {
+      logger.info('Pg pool ended');
       pgPool = null;
     }
   }

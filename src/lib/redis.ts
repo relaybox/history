@@ -105,7 +105,9 @@ export function getRedisClient(): RedisClient {
 export async function cleanupRedisClient(): Promise<void> {
   if (redisClient) {
     try {
-      await redisClient.quit();
+      if (redisClient.isReady) {
+        await redisClient.quit();
+      }
     } catch (err) {
       logger.error('Error disconnecting Redis client', { err });
     } finally {

@@ -67,9 +67,9 @@ export default class BatchConsumer extends EventEmitter {
   public async stop(): Promise<void> {
     this.consuming = false;
 
-    if (this.consumerTag) {
-      await this.channel.cancel(this.consumerTag);
-    }
+    // if (this.consumerTag) {
+    //   await this.channel.cancel(this.consumerTag);
+    // }
 
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout);
@@ -198,5 +198,10 @@ export default class BatchConsumer extends EventEmitter {
       this.logger.warn('Failed to parse message content as JSON', content);
       return content;
     }
+  }
+
+  public async drain(): Promise<void> {
+    this.logger.debug(`Draining batch consumer ${this.consumerTag}`);
+    await this.processBatch();
   }
 }

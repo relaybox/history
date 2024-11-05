@@ -53,8 +53,9 @@ export default class BatchConsumer extends EventEmitter {
 
     try {
       const exchange = this.options.exchange;
+      const deadLetterExchange = this.options.deadLetterExchange;
 
-      await this.bindQueue(exchange);
+      await this.bindQueue(exchange, deadLetterExchange);
 
       await this.consume();
     } catch (err) {
@@ -83,14 +84,27 @@ export default class BatchConsumer extends EventEmitter {
     this.start().catch((err) => this.logger.error('Failed to restart consumer', { err }));
   }
 
-  private async bindQueue(exchange: ExchangeConfig): Promise<void> {
+  private async bindQueue(
+    exchange: ExchangeConfig,
+    deadLetterExchange?: ExchangeConfig
+  ): Promise<void> {
     this.logger.debug('Binding queue');
 
     await this.channel.assertExchange(exchange.name, exchange.type, {
       durable: exchange.durable ?? true
     });
 
-    await this.channel.assertQueue(this.options.queue, { durable: true });
+    if (deadLetterExchange) {
+      await this.channel.assertExchange(deadLetterExchange.name, deadLetterExchange.type, {
+        durable: deadLetterExchange.durable ?? true
+      });
+    }
+
+    await this.channel.assertQueue(this.options.queue, {
+      durable: true,
+      deadLetterExchange: deadLetterExchange?.name
+    });
+
     await this.channel.bindQueue(this.options.queue, exchange.name, this.options.routingKey);
     await this.channel.prefetch(this.options.prefetch!);
   }

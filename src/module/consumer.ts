@@ -9,6 +9,7 @@ const logger = getLogger('consumer');
 
 const RABBIT_MQ_CONNECTION_STRING = process.env.RABBIT_MQ_CONNECTION_STRING || '';
 const EXCHANGE_NAME = 'ds.persistence.durable';
+const EXCHANGE_NAME_DLX = 'ds.persistence.dlx';
 const QUEUE_TYPE = 'direct';
 const QUEUE_NAME = `0-global-persistence`;
 const ROUTING_KEY = `message.persist`;
@@ -27,6 +28,10 @@ export async function startConsumer(pgPool: Pool, redisClient: RedisClient): Pro
       name: EXCHANGE_NAME,
       type: QUEUE_TYPE
     },
+    // deadLetterExchange: {
+    //   name: EXCHANGE_NAME_DLX,
+    //   type: QUEUE_TYPE
+    // },
     queue: QUEUE_NAME,
     routingKey: ROUTING_KEY,
     prefetch: BATCH_PREFETCH_COUNT,

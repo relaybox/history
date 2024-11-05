@@ -38,6 +38,7 @@ export interface ExchangeConfig {
 export interface BatchConsumerOptions {
   amqpConnectionString: string;
   exchange: ExchangeConfig;
+  deadLetterExchange?: ExchangeConfig;
   queue: string;
   routingKey: string;
   prefetch?: number;

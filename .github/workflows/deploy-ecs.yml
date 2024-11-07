@@ -60,7 +60,7 @@ jobs:
           DB_MAX_CONNECTIONS: ${{ vars.DB_MAX_CONNECTIONS }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
-          FIREHOSE_DELIVERY_STREAM_NAME: ${{ vars.FIREHOSE_DELIVERY_STREAM_NAME }}
+          FIREHOSE_DELIVERY_STREAM_NAME: ${{ secrets.FIREHOSE_DELIVERY_STREAM_NAME }}
           RABBIT_MQ_CONNECTION_STRING: ${{ secrets.RABBIT_MQ_CONNECTION_STRING }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}

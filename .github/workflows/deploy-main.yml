@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/20241106_s3_put
 
 jobs:
   test:

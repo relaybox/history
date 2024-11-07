@@ -129,7 +129,7 @@ export async function putFirehoseRecords(
   logger.debug(`Putting ${messages.length} message(s) to Firehose`);
 
   if (!FIREHOSE_DELIVERY_STREAM_NAME) {
-    logger.warn(`No Firehose delivery stream name provided`);
+    logger.warn(`Firehose delivery stream name not provided`);
     return;
   }
 

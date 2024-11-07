@@ -4,6 +4,7 @@ import Rmq, { BatchConsumerOptions } from '@/lib/rmq/rmq';
 import { ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Pool } from 'pg';
+import { FirehoseClient } from '@aws-sdk/client-firehose';
 
 const logger = getLogger('consumer');
 
@@ -19,7 +20,11 @@ const BATCH_TIMEOUT_MS = Number(process.env.BATCH_TIMEOUT_MS || 5000);
 
 let connection: Rmq | null = null;
 
-export async function startConsumer(pgPool: Pool, redisClient: RedisClient): Promise<void> {
+export async function startConsumer(
+  pgPool: Pool,
+  redisClient: RedisClient,
+  firehoseClient: FirehoseClient
+): Promise<void> {
   connection = await Rmq.connect(RABBIT_MQ_CONNECTION_STRING);
 
   const batchConsumerOptions: BatchConsumerOptions = {
@@ -41,7 +46,8 @@ export async function startConsumer(pgPool: Pool, redisClient: RedisClient): Pro
 
   const batchConsumer = await connection.createBatchConsumer(
     batchConsumerOptions,
-    (messages: ParsedMessage[]) => historyBatchProcesser(pgPool, redisClient, messages)
+    (messages: ParsedMessage[]) =>
+      historyBatchProcesser(pgPool, redisClient, firehoseClient, messages)
   );
 
   batchConsumer.start();

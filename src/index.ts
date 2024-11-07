@@ -2,14 +2,16 @@ import 'dotenv/config';
 
 import { getLogger } from '@/util/logger';
 import { cleanupPgPool, getPgPool } from '@/lib/pg';
-import { startConsumer, stopConsumer } from './module/consumer';
-import { cleanupRedisClient, getRedisClient } from './lib/redis';
+import { startConsumer, stopConsumer } from '@/module/consumer';
+import { cleanupRedisClient, getRedisClient } from '@/lib/redis';
+import { getFirehoseClient } from '@/lib/firehose';
 
 // FORCE DEPLOY, 1
 
 const logger = getLogger('history-service');
 const pgPool = getPgPool();
 const redisClient = getRedisClient();
+const firehoseClient = getFirehoseClient();
 
 async function startService() {
   if (!pgPool) {
@@ -22,7 +24,7 @@ async function startService() {
 
   await redisClient.connect();
 
-  startConsumer(pgPool, redisClient);
+  startConsumer(pgPool, redisClient, firehoseClient);
 }
 
 async function shutdown(signal: string): Promise<void> {

@@ -12,6 +12,7 @@
   "author": "RelayBox",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-firehose": "^3.686.0",
     "amqplib": "^0.10.4",
     "bullmq": "^5.7.15",
     "dotenv": "^16.4.5",

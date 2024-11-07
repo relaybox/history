@@ -3,6 +3,14 @@ import { PoolClient } from 'pg';
 import * as db from './db';
 import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
+import {
+  FirehoseClient,
+  PutRecordBatchCommand,
+  PutRecordBatchCommandInput,
+  PutRecordCommandInput
+} from '@aws-sdk/client-firehose';
+
+const FIREHOSE_DELIVERY_STREAM_NAME = process.env.FIREHOSE_DELIVERY_STREAM_NAME || '';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -111,4 +119,39 @@ export function createInvalidationMap(messages: ParsedMessage[]): Map<string, nu
   }
 
   return invalidationMap;
+}
+
+export async function putFirehoseRecords(
+  logger: Logger,
+  firehoseClient: FirehoseClient,
+  messages: ParsedMessage[]
+): Promise<void> {
+  logger.debug(`Putting ${messages.length} message(s) to Firehose`);
+
+  try {
+    const records = messages.map((message) => {
+      const record = {
+        appPid: message.message.session.appPid,
+        ...message
+      };
+
+      return {
+        Data: Buffer.from(JSON.stringify(record))
+      };
+    });
+
+    const commandInput: PutRecordBatchCommandInput = {
+      DeliveryStreamName: FIREHOSE_DELIVERY_STREAM_NAME,
+      Records: records
+    };
+
+    const command = new PutRecordBatchCommand(commandInput);
+
+    const response = await firehoseClient.send(command);
+    console.log(response);
+  } catch (err: unknown) {
+    console.log(err);
+    logger.error(`Failed to put Firehose records`, { err });
+    throw err;
+  }
 }

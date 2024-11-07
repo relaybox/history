@@ -150,7 +150,6 @@ export async function putFirehoseRecords(
     const response = await firehoseClient.send(command);
     console.log(response);
   } catch (err: unknown) {
-    console.log(err);
     logger.error(`Failed to put Firehose records`, { err });
     throw err;
   }

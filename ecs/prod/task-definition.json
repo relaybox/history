@@ -63,6 +63,10 @@
           "value": "${DB_USER}"
         },
         {
+          "name": "FIREHOSE_DELIVERY_STREAM_NAME",
+          "value": "${FIREHOSE_DELIVERY_STREAM_NAME}"
+        },
+        {
           "name": "RABBIT_MQ_CONNECTION_STRING",
           "value": "${RABBIT_MQ_CONNECTION_STRING}"
         },

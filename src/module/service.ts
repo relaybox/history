@@ -125,8 +125,13 @@ export async function putFirehoseRecords(
   logger: Logger,
   firehoseClient: FirehoseClient,
   messages: ParsedMessage[]
-): Promise<PutRecordBatchCommandOutput> {
+): Promise<PutRecordBatchCommandOutput | undefined> {
   logger.debug(`Putting ${messages.length} message(s) to Firehose`);
+
+  if (!FIREHOSE_DELIVERY_STREAM_NAME) {
+    logger.warn(`No Firehose delivery stream name provided`);
+    return;
+  }
 
   try {
     const records = messages.map((message) => {

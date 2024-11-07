@@ -67,6 +67,10 @@
           "value": "${FIREHOSE_DELIVERY_STREAM_NAME}"
         },
         {
+          "name": "LOG_LEVEL",
+          "value": "${LOG_LEVEL}"
+        },
+        {
           "name": "RABBIT_MQ_CONNECTION_STRING",
           "value": "${RABBIT_MQ_CONNECTION_STRING}"
         },

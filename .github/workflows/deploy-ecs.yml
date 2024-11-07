@@ -61,6 +61,7 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
           FIREHOSE_DELIVERY_STREAM_NAME: ${{ secrets.FIREHOSE_DELIVERY_STREAM_NAME }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
           RABBIT_MQ_CONNECTION_STRING: ${{ secrets.RABBIT_MQ_CONNECTION_STRING }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}

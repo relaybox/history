@@ -7,8 +7,7 @@ import {
   FirehoseClient,
   PutRecordBatchCommand,
   PutRecordBatchCommandInput,
-  PutRecordBatchCommandOutput,
-  PutRecordCommandInput
+  PutRecordBatchCommandOutput
 } from '@aws-sdk/client-firehose';
 
 const FIREHOSE_DELIVERY_STREAM_NAME = process.env.FIREHOSE_DELIVERY_STREAM_NAME || '';

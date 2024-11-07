@@ -7,6 +7,7 @@ import {
   FirehoseClient,
   PutRecordBatchCommand,
   PutRecordBatchCommandInput,
+  PutRecordBatchCommandOutput,
   PutRecordCommandInput
 } from '@aws-sdk/client-firehose';
 
@@ -125,7 +126,7 @@ export async function putFirehoseRecords(
   logger: Logger,
   firehoseClient: FirehoseClient,
   messages: ParsedMessage[]
-): Promise<void> {
+): Promise<PutRecordBatchCommandOutput> {
   logger.debug(`Putting ${messages.length} message(s) to Firehose`);
 
   try {
@@ -147,8 +148,7 @@ export async function putFirehoseRecords(
 
     const command = new PutRecordBatchCommand(commandInput);
 
-    const response = await firehoseClient.send(command);
-    console.log(response);
+    return await firehoseClient.send(command);
   } catch (err: unknown) {
     logger.error(`Failed to put Firehose records`, { err });
     throw err;

@@ -3,6 +3,8 @@ import { PoolClient } from 'pg';
 import * as db from './db';
 import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
+import { Document } from '@langchain/core/documents';
+import { QdrantVectorStore } from '@langchain/qdrant';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -111,4 +113,41 @@ export function createInvalidationMap(messages: ParsedMessage[]): Map<string, nu
   }
 
   return invalidationMap;
+}
+
+function createDocument(message: ParsedMessage): Document {
+  const { message: messageData } = message;
+  const { session, data } = messageData;
+
+  const pageContent = `username=${session.user?.username}; 
+    message=${JSON.stringify(data.body)}; 
+    timestamp=${data.timestamp};`;
+
+  const { appPid, roomId } = message;
+
+  const metadata = {
+    appPid,
+    roomId,
+    timestamp: data.timestamp
+  };
+
+  return {
+    id: data.id,
+    pageContent,
+    metadata
+  };
+}
+
+export async function addMessagesToVectorStore(
+  logger: Logger,
+  qdrantVectorStore: QdrantVectorStore,
+  messages: ParsedMessage[]
+): Promise<void> {
+  try {
+    const documents = messages.map(createDocument);
+    await qdrantVectorStore.addDocuments(documents);
+  } catch (err: unknown) {
+    logger.error(`Failed to add message to vector store`, { err });
+    throw err;
+  }
 }

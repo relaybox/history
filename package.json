@@ -12,6 +12,10 @@
   "author": "RelayBox",
   "license": "MIT",
   "dependencies": {
+    "@langchain/core": "^0.3.17",
+    "@langchain/openai": "^0.3.12",
+    "@langchain/qdrant": "^0.1.0",
+    "@langchain/textsplitters": "^0.1.0",
     "amqplib": "^0.10.4",
     "bullmq": "^5.7.15",
     "dotenv": "^16.4.5",

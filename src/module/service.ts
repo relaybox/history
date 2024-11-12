@@ -127,6 +127,7 @@ function createDocument(message: ParsedMessage): Document {
   const { appPid, roomId } = message;
 
   const metadata = {
+    id: data.id,
     appPid,
     roomId,
     timestamp: data.timestamp

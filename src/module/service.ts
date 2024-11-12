@@ -119,9 +119,10 @@ function createDocument(message: ParsedMessage): Document {
   const { message: messageData } = message;
   const { session, data } = messageData;
 
-  const pageContent = `username=${session.user?.username}; 
-    message=${JSON.stringify(data.body)}; 
-    timestamp=${data.timestamp};`;
+  const userText = `username=${session.user?.username}`;
+  const bodyText = `message=${JSON.stringify(data.body)}`;
+  const timestampText = `timestamp=${data.timestamp}`;
+  const pageContent = `${userText}; ${bodyText}; ${timestampText};`;
 
   const { appPid, roomId } = message;
 

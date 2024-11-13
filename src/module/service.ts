@@ -5,6 +5,7 @@ import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Document } from '@langchain/core/documents';
 import { QdrantVectorStore } from '@langchain/qdrant';
+import { getQdrantVectorStore } from '@/lib/qdrant';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -142,14 +143,41 @@ function createDocument(message: ParsedMessage): Document {
 
 export async function addMessagesToVectorStore(
   logger: Logger,
-  qdrantVectorStore: QdrantVectorStore,
   messages: ParsedMessage[]
 ): Promise<void> {
+  logger.debug(`Adding ${messages.length} message(s) to vector store`);
+
   try {
-    const documents = messages.map(createDocument);
-    await qdrantVectorStore.addDocuments(documents);
+    const groupedMessages = groupMessagesByAppPid(logger, messages);
+
+    for (const [appPid, appMessages] of groupedMessages.entries()) {
+      const vectorStore = getQdrantVectorStore(appPid);
+      const documents = appMessages.map(createDocument);
+      await vectorStore.addDocuments(documents);
+    }
   } catch (err: unknown) {
     logger.error(`Failed to add message to vector store`, { err });
+    throw err;
+  }
+}
+
+export function groupMessagesByAppPid(
+  logger: Logger,
+  messages: ParsedMessage[]
+): Map<string, ParsedMessage[]> {
+  logger.debug(`Grouping ${messages.length} message(s) by app pid`);
+
+  try {
+    return messages.reduce<Map<string, ParsedMessage[]>>((acc, message) => {
+      const { appPid } = message;
+      const existingMessages = acc.get(appPid) || [];
+
+      acc.set(appPid, [...existingMessages, message]);
+
+      return acc;
+    }, new Map<string, ParsedMessage[]>());
+  } catch (err: unknown) {
+    logger.error(`Failed to group messages by app pid`, { err });
     throw err;
   }
 }

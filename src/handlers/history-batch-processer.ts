@@ -26,7 +26,7 @@ export async function handler(
     const messageDbEntries = parseMessageHistoryDbEntries(logger, messages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
     await invalidateCachedMessages(logger, redisClient, messages);
-    await addMessagesToVectorStore(logger, qdrantVectorStore, messages);
+    await addMessagesToVectorStore(logger, messages);
   } catch (err: unknown) {
     logger.error('Failed to process batch', { err });
     throw err;

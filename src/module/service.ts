@@ -5,6 +5,8 @@ import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Document } from '@langchain/core/documents';
 import { getQdrantVectorStore } from '@/lib/qdrant';
+import { getOpenSearchVectorStore } from '@/lib/opensearch';
+import { Client } from '@opensearch-project/opensearch/.';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -142,6 +144,7 @@ function createDocument(message: ParsedMessage): Document {
 
 export async function addMessagesToVectorStore(
   logger: Logger,
+  openSearchClient: Client,
   messages: ParsedMessage[]
 ): Promise<void> {
   logger.debug(`Adding ${messages.length} message(s) to vector store`);
@@ -150,7 +153,8 @@ export async function addMessagesToVectorStore(
     const groupedMessages = groupMessagesByAppPid(logger, messages);
 
     for (const [appPid, appMessages] of groupedMessages.entries()) {
-      const vectorStore = getQdrantVectorStore(appPid);
+      // const vectorStore = getQdrantVectorStore(appPid);
+      const vectorStore = getOpenSearchVectorStore(openSearchClient, appPid);
       const documents = appMessages.map(createDocument);
       await vectorStore.addDocuments(documents);
     }

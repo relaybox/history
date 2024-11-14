@@ -5,11 +5,13 @@ import { cleanupPgPool, getPgPool } from '@/lib/pg';
 import { startConsumer, stopConsumer } from '@/module/consumer';
 import { cleanupRedisClient, getRedisClient } from '@/lib/redis';
 import { getQdrantVectorStore } from '@/lib/qdrant';
+import { getOpenSearchClient } from './lib/opensearch';
 
 const logger = getLogger('history-service');
 const pgPool = getPgPool();
 const redisClient = getRedisClient();
 const qdrantVectorStore = getQdrantVectorStore('room-history');
+const openSearchClient = getOpenSearchClient();
 
 async function startService() {
   if (!pgPool) {
@@ -22,7 +24,7 @@ async function startService() {
 
   await redisClient.connect();
 
-  startConsumer(pgPool, redisClient, qdrantVectorStore);
+  startConsumer(pgPool, redisClient, qdrantVectorStore, openSearchClient);
 }
 
 async function shutdown(signal: string): Promise<void> {

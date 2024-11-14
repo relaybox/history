@@ -9,6 +9,7 @@ import { ParsedMessage } from '@/module/types';
 import { getLogger } from '@/util/logger';
 import { RedisClient } from '@/lib/redis';
 import { QdrantVectorStore } from '@langchain/qdrant';
+import { Client } from '@opensearch-project/opensearch/.';
 
 const logger = getLogger('history-batch-processer');
 
@@ -16,6 +17,7 @@ export async function handler(
   pgPool: Pool,
   redisClient: RedisClient,
   qdrantVectorStore: QdrantVectorStore,
+  openSearchClient: Client,
   messages: ParsedMessage[]
 ): Promise<void> {
   logger.debug(`Processing batch of ${messages.length} message(s)`);
@@ -26,7 +28,7 @@ export async function handler(
     const messageDbEntries = parseMessageHistoryDbEntries(logger, messages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
     await invalidateCachedMessages(logger, redisClient, messages);
-    await addMessagesToVectorStore(logger, messages);
+    await addMessagesToVectorStore(logger, openSearchClient, messages);
   } catch (err: unknown) {
     logger.error('Failed to process batch', { err });
     throw err;

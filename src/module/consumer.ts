@@ -5,6 +5,8 @@ import { ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Pool } from 'pg';
 import { QdrantVectorStore } from '@langchain/qdrant';
+import { OpenSearchVectorStore } from '@langchain/community/vectorstores/opensearch';
+import { Client } from '@opensearch-project/opensearch/.';
 
 const logger = getLogger('consumer');
 
@@ -23,7 +25,8 @@ let connection: Rmq | null = null;
 export async function startConsumer(
   pgPool: Pool,
   redisClient: RedisClient,
-  qdrantVectorStore: QdrantVectorStore
+  qdrantVectorStore: QdrantVectorStore,
+  openSearchClient: Client
 ): Promise<void> {
   connection = await Rmq.connect(RABBIT_MQ_CONNECTION_STRING);
 
@@ -47,7 +50,7 @@ export async function startConsumer(
   const batchConsumer = await connection.createBatchConsumer(
     batchConsumerOptions,
     (messages: ParsedMessage[]) =>
-      historyBatchProcesser(pgPool, redisClient, qdrantVectorStore, messages)
+      historyBatchProcesser(pgPool, redisClient, qdrantVectorStore, openSearchClient, messages)
   );
 
   batchConsumer.start();

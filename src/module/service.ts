@@ -4,7 +4,6 @@ import * as db from './db';
 import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Document } from '@langchain/core/documents';
-import { QdrantVectorStore } from '@langchain/qdrant';
 import { getQdrantVectorStore } from '@/lib/qdrant';
 
 export function getBufferKey(nspRoomId: string): string {

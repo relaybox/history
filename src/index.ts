@@ -6,8 +6,6 @@ import { startConsumer, stopConsumer } from '@/module/consumer';
 import { cleanupRedisClient, getRedisClient } from '@/lib/redis';
 import { getQdrantVectorStore } from '@/lib/qdrant';
 
-// FORCE DEPLOY
-
 const logger = getLogger('history-service');
 const pgPool = getPgPool();
 const redisClient = getRedisClient();

@@ -66,6 +66,7 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_TLS_DISABLED: ${{ vars.DB_TLS_DISABLED }}
           INTELLECT_ENABLED: ${{ vars.INTELLECT_ENABLED }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
           RABBIT_MQ_CONNECTION_STRING: ${{ secrets.RABBIT_MQ_CONNECTION_STRING }}
           RDS_ROOT_CERTIFICATE_ARN: ${{ secrets.RDS_ROOT_CERTIFICATE_ARN }}
           QDRANT_URL: ${{ secrets.QDRANT_URL }}

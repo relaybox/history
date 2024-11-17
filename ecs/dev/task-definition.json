@@ -79,6 +79,10 @@
           "value": "${INTELLECT_ENABLED}"
         },
         {
+          "name": "LOG_LEVEL",
+          "value": "${LOG_LEVEL}"
+        },
+        {
           "name": "QDRANT_URL",
           "value": "${QDRANT_URL}"
         },

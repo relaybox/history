@@ -12,6 +12,8 @@ import { QdrantVectorStore } from '@langchain/qdrant';
 
 const logger = getLogger('history-batch-processer');
 
+const INTELLECT_ENABLED = process.env.INTELLECT_ENABLED === 'true';
+
 export async function handler(
   pgPool: Pool,
   redisClient: RedisClient,
@@ -26,7 +28,10 @@ export async function handler(
     const messageDbEntries = parseMessageHistoryDbEntries(logger, messages);
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
     await invalidateCachedMessages(logger, redisClient, messages);
-    await addMessagesToVectorStore(logger, messages);
+
+    if (INTELLECT_ENABLED) {
+      await addMessagesToVectorStore(logger, messages);
+    }
   } catch (err: unknown) {
     logger.error('Failed to process batch', { err });
     throw err;

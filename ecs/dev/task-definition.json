@@ -75,6 +75,10 @@
           "value": "${DB_USER}"
         },
         {
+          "name": "INTELLECT_ENABLED",
+          "value": "${INTELLECT_ENABLED}"
+        },
+        {
           "name": "QDRANT_URL",
           "value": "${QDRANT_URL}"
         },

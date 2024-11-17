@@ -23,6 +23,18 @@
           "value": "${AWS_REGION}"
         },
         {
+          "name": "AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME",
+          "value": "${AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME}"
+        },
+        {
+          "name": "AZURE_OPENAI_API_EMBEDDINGS_VERSION",
+          "value": "${AZURE_OPENAI_API_EMBEDDINGS_VERSION}"
+        },
+        {
+          "name": "AZURE_OPENAI_API_INSTANCE_NAME",
+          "value": "${AZURE_OPENAI_API_INSTANCE_NAME}"
+        },
+        {
           "name": "BATCH_PREFETCH_COUNT",
           "value": "${BATCH_PREFETCH_COUNT}"
         },
@@ -63,6 +75,18 @@
           "value": "${DB_USER}"
         },
         {
+          "name": "INTELLECT_ENABLED",
+          "value": "${INTELLECT_ENABLED}"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "${LOG_LEVEL}"
+        },
+        {
+          "name": "QDRANT_URL",
+          "value": "${QDRANT_URL}"
+        },
+        {
           "name": "RABBIT_MQ_CONNECTION_STRING",
           "value": "${RABBIT_MQ_CONNECTION_STRING}"
         },
@@ -77,8 +101,16 @@
       ],
       "secrets": [
         {
+          "name": "AZURE_OPENAI_API_KEY",
+          "valueFrom": "${AZURE_OPENAI_API_KEY_ARN}"
+        },
+        {
           "name": "DB_PASSWORD",
           "valueFrom": "${DB_PASSWORD_ARN}"
+        },
+        {
+          "name": "QDRANT_API_KEY",
+          "valueFrom": "${QDRANT_API_KEY_ARN}"
         },
         {
           "name": "RDS_ROOT_CERTIFICATE",

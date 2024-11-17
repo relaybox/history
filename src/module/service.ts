@@ -3,6 +3,8 @@ import { PoolClient } from 'pg';
 import * as db from './db';
 import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
+import { Document } from '@langchain/core/documents';
+import { getQdrantVectorStore } from '@/lib/qdrant';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -111,4 +113,70 @@ export function createInvalidationMap(messages: ParsedMessage[]): Map<string, nu
   }
 
   return invalidationMap;
+}
+
+function createDocument(message: ParsedMessage): Document {
+  const { message: messageData } = message;
+  const { session, data } = messageData;
+
+  const userText = `username=${session.user?.username}`;
+  const bodyText = `message=${JSON.stringify(data.body)}`;
+  const timestampText = `timestamp=${data.timestamp}`;
+  const pageContent = `${userText}; ${bodyText}; ${timestampText};`;
+
+  const { appPid, roomId } = message;
+
+  const metadata = {
+    id: data.id,
+    appPid,
+    roomId,
+    timestamp: data.timestamp
+  };
+
+  return {
+    id: data.id,
+    pageContent,
+    metadata
+  };
+}
+
+export async function addMessagesToVectorStore(
+  logger: Logger,
+  messages: ParsedMessage[]
+): Promise<void> {
+  logger.debug(`Adding ${messages.length} message(s) to vector store`);
+
+  try {
+    const groupedMessages = groupMessagesByAppPid(logger, messages);
+
+    for (const [appPid, appMessages] of groupedMessages.entries()) {
+      const vectorStore = getQdrantVectorStore(appPid);
+      const documents = appMessages.map(createDocument);
+      await vectorStore.addDocuments(documents);
+    }
+  } catch (err: unknown) {
+    logger.error(`Failed to add message to vector store`, { err });
+    throw err;
+  }
+}
+
+export function groupMessagesByAppPid(
+  logger: Logger,
+  messages: ParsedMessage[]
+): Map<string, ParsedMessage[]> {
+  logger.debug(`Grouping ${messages.length} message(s) by app pid`);
+
+  try {
+    return messages.reduce<Map<string, ParsedMessage[]>>((acc, message) => {
+      const { appPid } = message;
+      const existingMessages = acc.get(appPid) || [];
+
+      acc.set(appPid, [...existingMessages, message]);
+
+      return acc;
+    }, new Map<string, ParsedMessage[]>());
+  } catch (err: unknown) {
+    logger.error(`Failed to group messages by app pid`, { err });
+    throw err;
+  }
 }

@@ -42,6 +42,7 @@ export interface Message {
 }
 
 export interface ParsedMessage {
+  appPid: string;
   roomId: string;
   event: string;
   message: Message;

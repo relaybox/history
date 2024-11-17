@@ -2,14 +2,14 @@ import 'dotenv/config';
 
 import { getLogger } from '@/util/logger';
 import { cleanupPgPool, getPgPool } from '@/lib/pg';
-import { startConsumer, stopConsumer } from './module/consumer';
-import { cleanupRedisClient, getRedisClient } from './lib/redis';
-
-// FORCE DEPLOY, 1
+import { startConsumer, stopConsumer } from '@/module/consumer';
+import { cleanupRedisClient, getRedisClient } from '@/lib/redis';
+import { getQdrantVectorStore } from '@/lib/qdrant';
 
 const logger = getLogger('history-service');
 const pgPool = getPgPool();
 const redisClient = getRedisClient();
+const qdrantVectorStore = getQdrantVectorStore('room-history');
 
 async function startService() {
   if (!pgPool) {
@@ -22,7 +22,7 @@ async function startService() {
 
   await redisClient.connect();
 
-  startConsumer(pgPool, redisClient);
+  startConsumer(pgPool, redisClient, qdrantVectorStore);
 }
 
 async function shutdown(signal: string): Promise<void> {

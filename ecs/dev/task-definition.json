@@ -106,7 +106,7 @@
         },
         {
           "name": "QDRANT_API_KEY",
-          "valueFrom": "${QDRANT_API_KEY_ARN_ARN}"
+          "valueFrom": "${QDRANT_API_KEY_ARN}"
         },
         {
           "name": "RDS_ROOT_CERTIFICATE",

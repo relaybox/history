@@ -155,7 +155,7 @@ export async function addMessagesToVectorStore(
       await vectorStore.addDocuments(documents);
     }
   } catch (err: unknown) {
-    console.log(err);
+    console.log(1, err);
     logger.error(`Failed to add message to vector store`, { err });
     throw err;
   }

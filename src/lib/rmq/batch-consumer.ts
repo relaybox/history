@@ -59,7 +59,7 @@ export default class BatchConsumer extends EventEmitter {
 
       await this.consume();
     } catch (err) {
-      this.logger.error('Failed to connect', { err });
+      this.logger.error('Failed to connect', err);
       throw err;
     }
   }
@@ -81,7 +81,7 @@ export default class BatchConsumer extends EventEmitter {
     this.channel = channel;
 
     this.stop();
-    this.start().catch((err) => this.logger.error('Failed to restart consumer', { err }));
+    this.start().catch((err) => this.logger.error('Failed to restart consumer', err));
   }
 
   private async bindQueue(
@@ -180,7 +180,7 @@ export default class BatchConsumer extends EventEmitter {
 
       this.emit(BatchConsumerEvent.BATCH_PROCESSED, messages);
     } catch (err) {
-      this.logger.error('Error processing batch', { err });
+      this.logger.error('Error processing batch', err);
 
       for (const message of originalMessages) {
         this.channel.nack(message, false, false);

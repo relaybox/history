@@ -164,7 +164,7 @@ export function groupMessagesByAppPid(
   logger: Logger,
   messages: ParsedMessage[]
 ): Map<string, ParsedMessage[]> {
-  logger.debug(`Grouping ${messages.length} message(s) by app pid`);
+  logger.debug(`Grouping ${messages.length} message(s) by 'appPid'`);
 
   try {
     return messages.reduce<Map<string, ParsedMessage[]>>((acc, message) => {

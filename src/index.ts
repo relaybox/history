@@ -43,7 +43,7 @@ async function shutdown(signal: string): Promise<void> {
     logger.info('Graceful shutdown completed');
     process.exit(0);
   } catch (err) {
-    logger.error('Error during graceful shutdown', { err });
+    logger.error('Error during graceful shutdown', err);
     process.exit(1);
   }
 }

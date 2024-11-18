@@ -33,7 +33,7 @@ export async function handler(
       await addMessagesToVectorStore(logger, messages);
     }
   } catch (err: unknown) {
-    logger.error('Failed to process batch', { err });
+    logger.error('Failed to process batch', err);
     throw err;
   } finally {
     pgClient.release();

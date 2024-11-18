@@ -39,7 +39,7 @@ export function parseMessageHistoryDbEntries(
         now
       ]);
     } catch (err: unknown) {
-      logger.error(`Failed to parse log stream message`, { err });
+      logger.error(`Failed to parse log stream message`, err);
     }
 
     return acc;
@@ -68,7 +68,7 @@ export async function bulkInsertMessageHistory(
 
     await db.bulkInsertMessageHistory(pgClient, queryPlaceholders, values);
   } catch (err: unknown) {
-    logger.error(`Failed to bulk insert webhook logs`, { err });
+    logger.error(`Failed to bulk insert webhook logs`, err);
     throw err;
   }
 }
@@ -92,7 +92,7 @@ export async function invalidateCachedMessages(
 
     await multi.exec();
   } catch (err: unknown) {
-    logger.error(`Failed to invalidate cached message(s)`, { err });
+    logger.error(`Failed to invalidate cached message(s)`, err);
     throw err;
   }
 }
@@ -155,8 +155,7 @@ export async function addMessagesToVectorStore(
       await vectorStore.addDocuments(documents);
     }
   } catch (err: unknown) {
-    console.log(1, err);
-    logger.error(`Failed to add message to vector store`, { err });
+    logger.error(`Failed to add message to vector store`, err);
     throw err;
   }
 }
@@ -177,7 +176,7 @@ export function groupMessagesByAppPid(
       return acc;
     }, new Map<string, ParsedMessage[]>());
   } catch (err: unknown) {
-    logger.error(`Failed to group messages by app pid`, { err });
+    logger.error(`Failed to group messages by app pid`, err);
     throw err;
   }
 }

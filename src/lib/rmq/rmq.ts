@@ -76,7 +76,7 @@ export default class Rmq {
       this.connectionState = ConnectionState.CONNECTED;
 
       this.connection.on('error', (err) => {
-        this.logger.error('Connection error', { err });
+        this.logger.error('Connection error', err);
       });
 
       this.connection.on('close', () => {
@@ -99,7 +99,7 @@ export default class Rmq {
 
       eventBus.emit(AmqpEvent.AMQP_READY);
     } catch (err) {
-      this.logger.error('Failed to connect', { err });
+      this.logger.error('Failed to connect', err);
       throw err;
     }
   }
@@ -136,7 +136,7 @@ export default class Rmq {
           await this.initialize();
           this.logger.info('Reconnection successful');
         } catch (err) {
-          this.logger.error('Reconnection attempt failed', { err });
+          this.logger.error('Reconnection attempt failed', err);
           this.currentRetryDelay = Math.min(this.currentRetryDelay * 1.5, MAX_RETRY_DELAY_MS);
           reconnect();
         }
@@ -157,7 +157,7 @@ export default class Rmq {
 
       return batchConsumer;
     } catch (err) {
-      this.logger.error('Error creating batch consumer', { err });
+      this.logger.error('Error creating batch consumer', err);
       throw err;
     }
   }
@@ -189,7 +189,7 @@ export default class Rmq {
 
       this.logger.info('Rmq connection closed');
     } catch (err) {
-      this.logger.error('Error closing rmq connection', { err });
+      this.logger.error('Error closing rmq connection', err);
     }
   }
 }

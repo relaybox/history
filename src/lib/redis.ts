@@ -88,7 +88,7 @@ export function getRedisClient(): RedisClient {
   });
 
   redisClient.on('error', (err) => {
-    logger.error(`Redis connection error`, { err });
+    logger.error(`Redis connection error`, err);
   });
 
   redisClient.on('ready', () => {
@@ -107,7 +107,7 @@ export async function cleanupRedisClient(): Promise<void> {
     try {
       await redisClient.quit();
     } catch (err) {
-      logger.error('Error disconnecting Redis client', { err });
+      logger.error('Error disconnecting Redis client', err);
     } finally {
       redisClient = null;
     }

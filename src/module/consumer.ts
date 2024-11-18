@@ -58,7 +58,7 @@ export async function stopConsumer(): Promise<void> {
     try {
       await connection.close();
     } catch (err) {
-      logger.error('Error closing batch consumer:', { err });
+      logger.error('Error closing batch consumer:', err);
     } finally {
       connection = null;
     }

@@ -5,6 +5,10 @@ import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Document } from '@langchain/core/documents';
 import { getQdrantVectorStore } from '@/lib/qdrant';
+import jsonpath from 'jsonpath';
+import { convert } from 'html-to-text';
+
+const MESSAGE_DOCUMENT_TYPE = 'message';
 
 export function getBufferKey(nspRoomId: string): string {
   return `${KeyPrefix.HISTORY}:buffer:${nspRoomId}`;
@@ -17,7 +21,7 @@ export function parseMessageHistoryDbEntries(
   logger.debug(`Parsing ${messages.length} message(s)`);
 
   return messages.reduce<MessageHistoryDbEntry[]>((acc, message) => {
-    const { roomId, event, message: messageData } = message;
+    const { roomId, event, llmInputPath, message: messageData } = message;
     const { requestId, data, session } = messageData;
     const now = new Date(data.timestamp).toISOString();
     const body = { $: data.body };
@@ -35,6 +39,7 @@ export function parseMessageHistoryDbEntries(
         event,
         requestId,
         body,
+        llmInputPath,
         now,
         now
       ]);
@@ -115,22 +120,34 @@ export function createInvalidationMap(messages: ParsedMessage[]): Map<string, nu
   return invalidationMap;
 }
 
-function createDocument(message: ParsedMessage): Document {
-  const { message: messageData } = message;
+function createDocument(message: ParsedMessage): Document | null {
+  const { message: messageData, llmInputPath } = message;
   const { session, data } = messageData;
 
-  const userText = `username=${session.user?.username}`;
-  const bodyText = `message=${JSON.stringify(data.body)}`;
-  const timestampText = `timestamp=${data.timestamp}`;
-  const pageContent = `${userText}; ${bodyText}; ${timestampText};`;
+  const naturalText = jsonpath.query(data.body, llmInputPath ?? '$');
+
+  if (!naturalText.length) {
+    return null;
+  }
+
+  const sanitizedNaturalText = convert(naturalText[0]);
+  // const userText = `username=${session.user?.username}`;
+  // const bodyText = `message=${sanitizedNaturalText}`;
+  // const timestampText = `timestamp=${data.timestamp}`;
+  // const pageContent = `${userText}; ${bodyText}; ${timestampText};`;
+
+  const pageContent = sanitizedNaturalText;
 
   const { appPid, roomId } = message;
 
   const metadata = {
-    id: data.id,
     appPid,
     roomId,
-    timestamp: data.timestamp
+    messageId: data.id,
+    timestamp: data.timestamp,
+    clientId: session.clientId,
+    username: session.user?.username,
+    type: MESSAGE_DOCUMENT_TYPE
   };
 
   return {
@@ -151,7 +168,7 @@ export async function addMessagesToVectorStore(
 
     for (const [appPid, appMessages] of groupedMessages.entries()) {
       const vectorStore = getQdrantVectorStore(appPid);
-      const documents = appMessages.map(createDocument);
+      const documents = appMessages.map(createDocument).filter((document) => document !== null);
       await vectorStore.addDocuments(documents);
     }
   } catch (err: unknown) {

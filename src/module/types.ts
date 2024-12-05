@@ -46,6 +46,7 @@ export interface ParsedMessage {
   roomId: string;
   event: string;
   message: Message;
+  llmInputPath?: string;
 }
 
 export enum KeyPrefix {

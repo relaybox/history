@@ -28,6 +28,7 @@ export function bulkInsertMessageHistory(
       event, 
       "requestId", 
       body, 
+      "llmInputPath",
       "createdAt", 
       "updatedAt"
     )

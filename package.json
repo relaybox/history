@@ -19,6 +19,8 @@
     "amqplib": "^0.10.4",
     "bullmq": "^5.7.15",
     "dotenv": "^16.4.5",
+    "html-to-text": "^9.0.5",
+    "jsonpath": "^1.1.1",
     "pg": "^8.12.0",
     "rabbitmq-client": "^4.6.0",
     "redis": "^4.6.14",
@@ -26,6 +28,8 @@
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.5",
+    "@types/html-to-text": "^9.0.4",
+    "@types/jsonpath": "^0.2.4",
     "@types/node": "^20.12.12",
     "@types/pg": "^8.11.6",
     "@types/redis": "^4.0.11",

@@ -21,7 +21,7 @@ export function parseMessageHistoryDbEntries(
   logger.debug(`Parsing ${messages.length} message(s)`);
 
   return messages.reduce<MessageHistoryDbEntry[]>((acc, message) => {
-    const { roomId, event, llmInputPath, message: messageData } = message;
+    const { roomId, roomUuid, event, llmInputPath, message: messageData } = message;
     const { requestId, data, session } = messageData;
     const now = new Date(data.timestamp).toISOString();
     const body = { $: data.body };
@@ -36,6 +36,7 @@ export function parseMessageHistoryDbEntries(
         session.connectionId,
         session.socketId,
         roomId,
+        roomUuid,
         event,
         requestId,
         body,

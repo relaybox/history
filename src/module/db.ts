@@ -25,6 +25,7 @@ export function bulkInsertMessageHistory(
       "connectionId", 
       "socketId", 
       "roomId", 
+      "roomUuid",
       event, 
       "requestId", 
       body, 

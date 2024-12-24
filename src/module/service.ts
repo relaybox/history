@@ -132,11 +132,6 @@ function createDocument(message: ParsedMessage): Document | null {
   }
 
   const sanitizedNaturalText = convert(naturalText[0]);
-  // const userText = `username=${session.user?.username}`;
-  // const bodyText = `message=${sanitizedNaturalText}`;
-  // const timestampText = `timestamp=${data.timestamp}`;
-  // const pageContent = `${userText}; ${bodyText}; ${timestampText};`;
-
   const pageContent = sanitizedNaturalText;
 
   const { appPid, roomId } = message;

@@ -153,25 +153,25 @@ function createDocument(message: ParsedMessage): Document | null {
   };
 }
 
-export async function addMessagesToVectorStore(
-  logger: Logger,
-  messages: ParsedMessage[]
-): Promise<void> {
-  logger.debug(`Adding ${messages.length} message(s) to vector store`);
+// export async function addMessagesToVectorStore(
+//   logger: Logger,
+//   messages: ParsedMessage[]
+// ): Promise<void> {
+//   logger.debug(`Adding ${messages.length} message(s) to vector store`);
 
-  try {
-    const groupedMessages = groupMessagesByAppPid(logger, messages);
+//   try {
+//     const groupedMessages = groupMessagesByAppPid(logger, messages);
 
-    for (const [appPid, appMessages] of groupedMessages.entries()) {
-      const vectorStore = getQdrantVectorStore(appPid);
-      const documents = appMessages.map(createDocument).filter((document) => document !== null);
-      await vectorStore.addDocuments(documents);
-    }
-  } catch (err: unknown) {
-    logger.error(`Failed to add message to vector store`, err);
-    throw err;
-  }
-}
+//     for (const [appPid, appMessages] of groupedMessages.entries()) {
+//       const vectorStore = getQdrantVectorStore(appPid);
+//       const documents = appMessages.map(createDocument).filter((document) => document !== null);
+//       await vectorStore.addDocuments(documents);
+//     }
+//   } catch (err: unknown) {
+//     logger.error(`Failed to add message to vector store`, err);
+//     throw err;
+//   }
+// }
 
 export function groupMessagesByAppPid(
   logger: Logger,

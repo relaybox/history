@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import {
-  addMessagesToVectorStore,
+  // addMessagesToVectorStore,
   bulkInsertMessageHistory,
   invalidateCachedMessages,
   parseMessageHistoryDbEntries
@@ -29,9 +29,9 @@ export async function handler(
     await bulkInsertMessageHistory(logger, pgClient, messageDbEntries);
     await invalidateCachedMessages(logger, redisClient, messages);
 
-    if (INTELLECT_ENABLED) {
-      await addMessagesToVectorStore(logger, messages);
-    }
+    // if (INTELLECT_ENABLED) {
+    //   await addMessagesToVectorStore(logger, messages);
+    // }
   } catch (err: unknown) {
     logger.error('Failed to process batch', err);
     throw err;

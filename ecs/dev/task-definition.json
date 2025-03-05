@@ -71,10 +71,6 @@
           "value": "${LOG_LEVEL}"
         },
         {
-          "name": "QDRANT_URL",
-          "value": "${QDRANT_URL}"
-        },
-        {
           "name": "RABBIT_MQ_CONNECTION_STRING",
           "value": "${RABBIT_MQ_CONNECTION_STRING}"
         },

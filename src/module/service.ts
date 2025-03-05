@@ -4,7 +4,6 @@ import * as db from './db';
 import { KeyPrefix, MessageHistoryDbEntry, ParsedMessage } from './types';
 import { RedisClient } from '@/lib/redis';
 import { Document } from '@langchain/core/documents';
-import { getQdrantVectorStore } from '@/lib/qdrant';
 import jsonpath from 'jsonpath';
 import { convert } from 'html-to-text';
 
@@ -152,26 +151,6 @@ function createDocument(message: ParsedMessage): Document | null {
     metadata
   };
 }
-
-// export async function addMessagesToVectorStore(
-//   logger: Logger,
-//   messages: ParsedMessage[]
-// ): Promise<void> {
-//   logger.debug(`Adding ${messages.length} message(s) to vector store`);
-
-//   try {
-//     const groupedMessages = groupMessagesByAppPid(logger, messages);
-
-//     for (const [appPid, appMessages] of groupedMessages.entries()) {
-//       const vectorStore = getQdrantVectorStore(appPid);
-//       const documents = appMessages.map(createDocument).filter((document) => document !== null);
-//       await vectorStore.addDocuments(documents);
-//     }
-//   } catch (err: unknown) {
-//     logger.error(`Failed to add message to vector store`, err);
-//     throw err;
-//   }
-// }
 
 export function groupMessagesByAppPid(
   logger: Logger,

@@ -4,12 +4,10 @@ import { getLogger } from '@/util/logger';
 import { cleanupPgPool, getPgPool } from '@/lib/pg';
 import { startConsumer, stopConsumer } from '@/module/consumer';
 import { cleanupRedisClient, getRedisClient } from '@/lib/redis';
-import { getQdrantVectorStore } from '@/lib/qdrant';
 
 const logger = getLogger('history-service');
 const pgPool = getPgPool();
 const redisClient = getRedisClient();
-const qdrantVectorStore = getQdrantVectorStore('room-history');
 
 async function startService() {
   if (!pgPool) {
@@ -22,7 +20,7 @@ async function startService() {
 
   await redisClient.connect();
 
-  startConsumer(pgPool, redisClient, qdrantVectorStore);
+  startConsumer(pgPool, redisClient);
 }
 
 async function shutdown(signal: string): Promise<void> {

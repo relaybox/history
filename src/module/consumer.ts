@@ -20,11 +20,7 @@ const BATCH_TIMEOUT_MS = Number(process.env.BATCH_TIMEOUT_MS || 5000);
 
 let connection: Rmq | null = null;
 
-export async function startConsumer(
-  pgPool: Pool,
-  redisClient: RedisClient,
-  qdrantVectorStore: QdrantVectorStore
-): Promise<void> {
+export async function startConsumer(pgPool: Pool, redisClient: RedisClient): Promise<void> {
   connection = await Rmq.connect(RABBIT_MQ_CONNECTION_STRING);
 
   const batchConsumerOptions: BatchConsumerOptions = {
@@ -46,8 +42,7 @@ export async function startConsumer(
 
   const batchConsumer = await connection.createBatchConsumer(
     batchConsumerOptions,
-    (messages: ParsedMessage[]) =>
-      historyBatchProcesser(pgPool, redisClient, qdrantVectorStore, messages)
+    (messages: ParsedMessage[]) => historyBatchProcesser(pgPool, redisClient, messages)
   );
 
   batchConsumer.start();

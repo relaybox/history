@@ -23,18 +23,6 @@
           "value": "${AWS_REGION}"
         },
         {
-          "name": "AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME",
-          "value": "${AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME}"
-        },
-        {
-          "name": "AZURE_OPENAI_API_EMBEDDINGS_VERSION",
-          "value": "${AZURE_OPENAI_API_EMBEDDINGS_VERSION}"
-        },
-        {
-          "name": "AZURE_OPENAI_API_INSTANCE_NAME",
-          "value": "${AZURE_OPENAI_API_INSTANCE_NAME}"
-        },
-        {
           "name": "BATCH_PREFETCH_COUNT",
           "value": "${BATCH_PREFETCH_COUNT}"
         },
@@ -101,16 +89,8 @@
       ],
       "secrets": [
         {
-          "name": "AZURE_OPENAI_API_KEY",
-          "valueFrom": "${AZURE_OPENAI_API_KEY_ARN}"
-        },
-        {
           "name": "DB_PASSWORD",
           "valueFrom": "${DB_PASSWORD_ARN}"
-        },
-        {
-          "name": "QDRANT_API_KEY",
-          "valueFrom": "${QDRANT_API_KEY_ARN}"
         },
         {
           "name": "RDS_ROOT_CERTIFICATE",
